@@ -1,0 +1,38 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+html[dir='rtl'] body {
+    direction: rtl;
+    text-align: right;
+  }
+  
+html[dir='ltr'] body {
+    direction: ltr;
+    text-align: left;
+  }
+  
+ body.rtl,
+body.ltr {
+  transition: all 0.3s ease;
+}
+/* index.css or global.css */
+
+/* For RTL (Arabic), place the sidebar on the right */
+body.rtl .sidebar {
+  right: 0;
+  left: auto;
+}
+
+/* For LTR (English), place the sidebar on the left */
+body.ltr .sidebar {
+  left: 0;
+  right: auto;
+}
+
+/* Smooth transition for sidebar when changing language */
+.sidebar {
+  transition: all 0.3s ease-in-out;
+}
+

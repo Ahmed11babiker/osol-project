@@ -1,0 +1,34 @@
+{
+    "welcome": "مرحبًا",
+    "Logout": "تسجيل الخروج",
+    "Dashboard": "لوحة التحكم",
+    "Journal Entries": "قيود اليومية",
+    "Accounts Tree": "شجرة الحسابات",
+    "Reports": "التقارير",
+    "Trial Balance": "ميزان المراجعة",
+    "Balance Sheet": "الميزانية العمومية",
+    "Fiscal Years": "السنوات المالية",
+    "Accounting System": "نظام المحاسبة",
+    "Accounts": "الحسابات",
+  "Account Groups": "مجموعة الحسابات",
+  "Account Types": "أنواع الحسابات",
+  "Branch" : "الفرع",
+  "Add Branch": "إضافة فرع",
+  "Branch Name": "اسم الفرع",
+  "Branch Code": "كود الفرع",
+  "Address": "العنوان",
+  "Phone": "الهاتف",
+  "Entries" :"القيود",
+  "Save": "حفظ",
+  "Currencies":"العملات",
+  "General Ledger":"دفتر الأستاذ",
+  "CostCenter" : "مراكز التكلفه",
+  "User Profile" : "الملف الشخصي",
+  "Invoices":"الفواتير",
+  "Create Invoice": "ْإنشاء فواتير",
+  "Collect Invoice":"تحصيل الفواتير "
+  
+  }
+  
+
+  
