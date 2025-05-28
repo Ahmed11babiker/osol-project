@@ -1,143 +1,141 @@
-// 📄 src/pages/Reports.jsx
-import { useState, useRef } from "react";
-import ReportFilters from "../../components/ReportFilters";
+import React, { useEffect, useState, useRef } from 'react';
+import axios from 'axios';
 import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from "recharts";
-import html2pdf from "html2pdf.js";
-import LoadingSpinner from "../../components/LoadingSpinner";
-import * as XLSX from "xlsx";
-import { useReactToPrint } from "react-to-print";
+  BarChart, Bar, PieChart, Pie, Cell,
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
+} from 'recharts';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
+import { useReactToPrint } from 'react-to-print';
 
-export default function Reports() {
-  const [filters, setFilters] = useState(null);
-  const reportRef = useRef();
+const COLORS = ['#0088FE', '#FF8042', '#00C49F'];
 
-  const handleApplyFilters = (newFilters) => {
-    setIsLoading(true)
-    setTimeout(() => {
-        setFilters(newFilters);
-        setIsLoading(false)
-    }, 500);
-  
+const ProfitReport = () => {
+  const [reportData, setReportData] = useState([]);
+  const [dateRange, setDateRange] = useState([null, null]);
+  const [startDate, endDate] = dateRange;
+  const [loading, setLoading] = useState(false);
+
+  const printRef = useRef();
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const response = await axios.get('http://localhost:3001/api/profit-loss/getProfitAndLoss', {
+        params: {
+          startDate: startDate?.toISOString(),
+          endDate: endDate?.toISOString()
+        }
+      });
+      const { revenue = 0, expense = 0, netProfit = 0 } = response.data.data;
+
+      // لا تعرض الرسم إن كانت القيم كلها صفر
+      if (revenue === 0 && expense === 0 && netProfit === 0) {
+        setReportData([]);
+      } else {
+        const data = [
+          { name: 'Revenue', value: revenue },
+          { name: 'Expense', value: expense },
+          { name: 'Net Profit', value: netProfit }
+        ];
+        setReportData(data);
+      }
+    } catch (error) {
+      console.error("Error fetching report", error);
+    }
+    setLoading(false);
   };
 
-  const data = [
-    { month: "يناير", revenue: 4000 },
-    { month: "فبراير", revenue: 3000 },
-    { month: "مارس", revenue: 5000 },
-    { month: "أبريل", revenue: 4000 },
-    { month: "مايو", revenue: 7000 },
-  ];
-  const [isLoading, setIsLoading] = useState(false);
-
-  const handleExportPDF = () => {
-    const element = reportRef.current;
-    setIsLoading(true);
-    setTimeout(() => {
-      html2pdf()
-        .set({
-          margin: 0.5,
-          filename: "report.pdf",
-          html2canvas: { scale: 2 },
-          jsPDF: { unit: "in", format: "a4", orientation: "portrait" },
-        })
-        .from(element)
-        .save();
-      setIsLoading(false);
-    }, 500);
-  };
-
-
-  const exportExcel = () => {
-    setIsLoading(true)
-    setTimeout(() => {
-          const worksheet = XLSX.utils.json_to_sheet(data);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Report");
-    XLSX.writeFile(workbook, "report.xlsx");
-    setIsLoading(false)
-    }, 500);
-  };
+  useEffect(() => {
+    fetchData();
+  }, []);
 
   const handlePrint = useReactToPrint({
-    content: () => reportRef.current,
-    documentTitle: "تقرير الإيرادات",
+    content: () => printRef.current,
+    documentTitle: 'ProfitAndLossReport',
   });
 
   return (
-    <div className="p-6 space-y-6">
-      <h2 className="text-2xl font-bold">📊 التقارير</h2>
-      {isLoading && <LoadingSpinner />}
-      <ReportFilters onApplyFilters={handleApplyFilters} />
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-4 flex-wrap gap-4">
+        <h2 className="text-2xl font-bold">Profit and Loss Report</h2>
 
-      <div ref={reportRef} className="bg-white p-6 shadow rounded">
-        <h3 className="text-xl font-semibold mb-4">📄 التقرير الناتج</h3>
-
-        {filters ? (
-          <div className="mb-4 text-gray-700">
-            <p>
-              الفترة: من {filters.dateRange.startDate} إلى{" "}
-              {filters.dateRange.endDate}
-            </p>
-            <p>الفرع: {filters.branch}</p>
-            <p>المركز: {filters.center}</p>
-          </div>
-        ) : (
-          <p className="text-gray-500 mb-4">
-            يرجى تطبيق الفلاتر لعرض التقارير.
-          </p>
-        )}
-
-        <div className="mt-6">
-          <h3 className="text-lg font-semibold mb-2">
-            📈 الإيرادات الشهرية (مخطط خطي)
-          </h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={data}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Line
-                type="monotone"
-                dataKey="revenue"
-                stroke="#1E40AF"
-                strokeWidth={2}
-              />
-            </LineChart>
-          </ResponsiveContainer>
+        <div className="flex items-center gap-2">
+          <DatePicker
+            selectsRange
+            startDate={startDate}
+            endDate={endDate}
+            onChange={(update) => setDateRange(update)}
+            isClearable
+            placeholderText="Select Date Range"
+            className="p-2 border rounded-md"
+          />
+          <button
+            onClick={fetchData}
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          >
+            Get Report
+          </button>
+          <button
+            onClick={handlePrint}
+            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+          >
+            Print
+          </button>
         </div>
       </div>
 
-      <div className="flex gap-4">
-        <button
-          onClick={handleExportPDF}
-          className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded shadow"
-        >
-          🧾 تصدير PDF
-        </button>
-        <button
-          onClick={exportExcel}
-          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded shadow"
-        >
-          📊 تصدير Excel
-        </button>
-        <button
-          onClick={handlePrint}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow"
-        >
-          🖨️ طباعة التقرير
-        </button>
-      </div>
+      {loading ? (
+        <p>Loading...</p>
+      ) : (
+        <div ref={printRef} className="bg-white rounded-lg shadow-md p-4">
+          {reportData.length === 0 ? (
+            <p className="text-gray-500 text-center py-10">No data available for the selected period.</p>
+          ) : (
+            <div className="grid md:grid-cols-2 gap-6">
+              <div>
+                <h3 className="text-lg font-semibold mb-2">Bar Chart</h3>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={reportData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="value" fill="#8884d8" barSize={40} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-semibold mb-2">Pie Chart</h3>
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={reportData}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={110}
+                      label
+                      isAnimationActive={true}
+                    >
+                      {reportData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend verticalAlign="bottom" height={36} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
-}
+};
+
+export default ProfitReport;

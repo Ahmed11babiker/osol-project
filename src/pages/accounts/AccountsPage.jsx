@@ -1,169 +1,333 @@
-// 📁 src/pages/AccountsPage.jsx
-import { useState } from "react";
-import { toast } from "react-hot-toast";
-import CenteredToast from "../../components/CenteredToast";
+// 📁 src/pages/AccountForm.jsx
+import { useEffect, useState } from "react";
+import axios from "axios";
 import LoadingSpinner from "../../components/LoadingSpinner";
-export default function AccountsPage() {
+import CenteredToast from "../../components/CenteredToast";
+
+export default function AccountForm({ initialData = {} }) {
+  const API = "http://localhost:3001/api";
+
+  const [accountTypes, setAccountTypes] = useState([]);
+  const [groups, setGroups] = useState([]);
+  const [currencies, setCurrencies] = useState([]);
+  const [branches, setBranches] = useState([]);
+  const [costCenters, setCostCenters] = useState([]);
+  const [accountsList, setAccountsList] = useState([]);
+
   const [form, setForm] = useState({
-    code: "",
-    name: "",
-    level: "",
-    type: "",
-    currency: "",
-    branch: "",
-    costCenter: "",
+    code: initialData.code || "",
+    name: initialData.name || "",
+    level: initialData.level || "",
+    accountTypeId: initialData.accountTypeId || "",
+    groupId: initialData.groupId || "",
+    currencyId: initialData.currencyId || "",
+    branchId: initialData.branchId || "",
+    costCenterId: initialData.costCenterId || "",
   });
 
-  const [accounts, setAccounts] = useState([]);
-  const [editIndex, setEditIndex] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
-  
+  const [loading, setLoading] = useState(false);
+  const [toast, setToast] = useState("");
+
+  useEffect(() => {
+    fetchOptions();
+    fetchAccountsList();
+  }, []);
+
+  const fetchOptions = async () => {
+    setLoading(true);
+    try {
+      const [atRes, gRes, cRes, bRes, ccRes] = await Promise.all([
+        axios.get(`${API}/account-type/index`),
+        axios.get(`${API}/account-group/index`),
+        axios.get(`${API}/currency/index`),
+        axios.get(`${API}/branch/index`),
+        axios.get(`${API}/cost-center/index`),
+      ]);
+      setAccountTypes(atRes.data.data || atRes.data);
+      setGroups(gRes.data.data || gRes.data);
+      setCurrencies(cRes.data.data || cRes.data);
+      setBranches(bRes.data.data || bRes.data);
+      setCostCenters(ccRes.data.data || ccRes.data);
+    } catch (err) {
+      console.error(err);
+      setToast("فشل في جلب قوائم الاختيارات");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchAccountsList = async () => {
+    setLoading(true);
+    try {
+      const res = await axios.get(`${API}/account/index`);
+      setAccountsList(res.data.data || res.data);
+    } catch (err) {
+      console.error(err);
+      setToast("فشل في جلب قائمة الحسابات");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setForm((f) => ({ ...f, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
-
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsLoading(true)
-    setTimeout(() => {
-      if (editIndex !== null) {
-      const updated = [...accounts];
-      updated[editIndex] = form;
-      setAccounts(updated);
-      setEditIndex(null);
-      toast.custom(() => (
-        <CenteredToast
-          message="✏️ تم تحديث الحساب بنجاح"
-          bgColor="bg-yellow-100"
-          textColor="text-yellow-800"
-          borderColor="border-yellow-400"
-        />
-      ));
-    } else {
-      setAccounts([...accounts, form]);
-      toast.custom(() => (
-        <CenteredToast
-          message="✅ تم إضافة الحساب بنجاح"
-        />
-        
-      ));
-      
+    setLoading(true);
+    try {
+      const fullPayload = { ...form };
+
+      if (initialData.id) {
+        const updatedFields = {};
+        for (let key in fullPayload) {
+          if (fullPayload[key] !== initialData[key]) {
+            updatedFields[key] = fullPayload[key];
+          }
+        }
+
+        if (Object.keys(updatedFields).length === 0) {
+          setToast("لم يتم تعديل أي بيانات");
+        } else {
+          await axios.put(`${API}/account/update/${initialData.id}`, updatedFields);
+          setToast("تم تعديل الحساب");
+        }
+      } else {
+        await axios.post(`${API}/account/create`, fullPayload);
+        setToast("تم إنشاء الحساب");
+      }
+
+      setForm({
+        code: "",
+        name: "",
+        level: "",
+        accountTypeId: "",
+        groupId: "",
+        currencyId: "",
+        branchId: "",
+        costCenterId: "",
+      });
+
+      fetchAccountsList();
+    } catch (err) {
+      console.error(err.response || err);
+      setToast(`خطأ من الخادم: ${err.response?.data?.message || err.message}`);
+    } finally {
+      setLoading(false);
     }
-    setForm({ code: "", name: "", level: "", type: "", currency: "", branch: "", costCenter: "" });
-    setIsLoading(false)
-    }, 500);
-    
   };
 
-  const handleEdit = (index) => {
-    setIsLoading(true)
-    setTimeout(() => {
-      setForm(accounts[index]);
-    setEditIndex(index);
-    toast.custom(() => (
-      <CenteredToast
-        message="✏️ يمكنك تعديل الحساب الآن"
-        bgColor="bg-blue-100"
-        textColor="text-blue-800"
-        borderColor="border-blue-400"
-      />
-    ));
-    setIsLoading(false)
-    }, 500);
+  const handleEdit = (acct) => {
+    setForm({
+      code: acct.code,
+      name: acct.name,
+      level: acct.level,
+      accountTypeId: acct.accountTypeId,
+      groupId: acct.groupId,
+      currencyId: acct.currencyId,
+      branchId: acct.branchId,
+      costCenterId: acct.costCenterId || "",
+    });
   };
 
-  const handleDelete = (index) => {
-    setIsLoading(true)
-    setTimeout(() => {
-      const updated = accounts.filter((_, i) => i !== index);
-    setAccounts(updated);
-    if (editIndex === index) {
-      setForm({ code: "", name: "", level: "", type: "", currency: "", branch: "", costCenter: "" });
-      setEditIndex(null);
+  const handleDelete = async (id) => {
+    if (!window.confirm("هل تريد حذف هذا الحساب؟")) return;
+    setLoading(true);
+    try {
+      await axios.delete(`${API}/account/delete/${id}`);
+      setToast("تم حذف الحساب");
+      fetchAccountsList();
+    } catch (err) {
+      console.error(err);
+      setToast("فشل في حذف الحساب");
+    } finally {
+      setLoading(false);
     }
-    toast.custom(() => (
-      <CenteredToast
-        message="🗑️ تم حذف الحساب"
-        bgColor="bg-red-100"
-        textColor="text-red-800"
-        borderColor="border-red-400"
-      />
-    ));
-    setIsLoading(false)
-    }, 500);
-    
+  };
+
+  const getNameById = (list, id) => {
+    const item = list.find((i) => i.id === id);
+    return item?.name || "-";
   };
 
   return (
-    <div className="p-6">
-      <h2 className="text-2xl font-bold mb-4">إضافة / تعديل حساب</h2>
-      {isLoading && <LoadingSpinner/>}
+    <div className="max-w-6xl mx-auto p-4 relative">
+      {loading && <LoadingSpinner />}
+      {toast && <CenteredToast message={toast} onClose={() => setToast("")} />}
+
+      <h2 className="text-2xl font-bold mb-4">إنشاء / تعديل حساب</h2>
       <form
         onSubmit={handleSubmit}
-        className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white p-4 rounded shadow mb-6"
+        className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8 bg-white p-4 rounded shadow"
       >
-        <input name="code" value={form.code} onChange={handleChange} placeholder="الكود" className="border p-2 rounded" />
-        <input name="name" value={form.name} onChange={handleChange} placeholder="اسم الحساب" className="border p-2 rounded" />
-        <input name="level" value={form.level} onChange={handleChange} placeholder="المستوى" className="border p-2 rounded" />
-        <input name="type" value={form.type} onChange={handleChange} placeholder="نوع الحساب" className="border p-2 rounded" />
-        <input name="currency" value={form.currency} onChange={handleChange} placeholder="العملة" className="border p-2 rounded" />
-        <input name="branch" value={form.branch} onChange={handleChange} placeholder="الفرع" className="border p-2 rounded" />
-        <input name="costCenter" value={form.costCenter} onChange={handleChange} placeholder="مركز التكلفة" className="border p-2 rounded" />
-        <button type="submit" className="col-span-1 md:col-span-2 bg-blue-600 text-white py-2 rounded">
-          {editIndex !== null ? "تحديث الحساب" : "حفظ الحساب"}
+        <div>
+          <label className="block mb-1">الاسم</label>
+          <input
+            name="name"
+            value={form.name}
+            onChange={handleChange}
+            className="w-full border rounded p-2"
+            required
+          />
+        </div>
+
+        <div>
+          <label className="block mb-1">الكود</label>
+          <input
+            name="code"
+            value={form.code}
+            onChange={handleChange}
+            className="w-full border rounded p-2"
+            required
+          />
+        </div>
+
+        <div>
+          <label className="block mb-1">المستوى</label>
+          <input
+            name="level"
+            type="number"
+            value={form.level}
+            onChange={handleChange}
+            className="w-full border rounded p-2"
+          />
+        </div>
+
+        <div>
+          <label className="block mb-1">نوع الحساب</label>
+          <select
+            name="accountTypeId"
+            value={form.accountTypeId}
+            onChange={handleChange}
+            className="w-full border rounded p-2"
+            required
+          >
+            <option value="">اختر</option>
+            {accountTypes.map((at) => (
+              <option key={at.id} value={at.id}>{at.name}</option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="block mb-1">المجموعة</label>
+          <select
+            name="groupId"
+            value={form.groupId}
+            onChange={handleChange}
+            className="w-full border rounded p-2"
+            required
+          >
+            <option value="">اختر</option>
+            {groups.map((g) => (
+              <option key={g.id} value={g.id}>{g.name}</option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="block mb-1">العملة</label>
+          <select
+            name="currencyId"
+            value={form.currencyId}
+            onChange={handleChange}
+            className="w-full border rounded p-2"
+            required
+          >
+            <option value="">اختر</option>
+            {currencies.map((c) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="block mb-1">الفرع</label>
+          <select
+            name="branchId"
+            value={form.branchId}
+            onChange={handleChange}
+            className="w-full border rounded p-2"
+            required
+          >
+            <option value="">اختر</option>
+            {branches.map((b) => (
+              <option key={b.id} value={b.id}>{b.name}</option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="block mb-1">مركز التكلفة</label>
+          <select
+            name="costCenterId"
+            value={form.costCenterId}
+            onChange={handleChange}
+            className="w-full border rounded p-2"
+          >
+            <option value="">اختر</option>
+            {costCenters.map((cc) => (
+              <option key={cc.id} value={cc.id}>{cc.name}</option>
+            ))}
+          </select>
+        </div>
+
+        <button
+          type="submit"
+          className="col-span-full bg-blue-600 text-white py-2 rounded"
+        >
+          حفظ
         </button>
       </form>
 
-      {accounts.length > 0 && (
-        <div className="overflow-x-auto bg-white p-4 rounded shadow">
-          <h3 className="text-lg font-semibold mb-2">قائمة الحسابات</h3>
-          <table className="min-w-full border">
-            <thead>
-              <tr className="bg-gray-100">
-                <th className="border p-2">#</th>
-                <th className="border p-2">الكود</th>
-                <th className="border p-2">الاسم</th>
-                <th className="border p-2">المستوى</th>
-                <th className="border p-2">النوع</th>
-                <th className="border p-2">العملة</th>
-                <th className="border p-2">الفرع</th>
-                <th className="border p-2">مركز التكلفة</th>
-                <th className="border p-2">الإجراءات</th>
+      <h2 className="text-2xl font-bold mb-4">قائمة الحسابات</h2>
+      <div className="overflow-x-auto bg-white rounded shadow">
+        <table className="min-w-full text-right border">
+          <thead className="bg-gray-100">
+            <tr>
+              <th className="p-2 border">الكود</th>
+              <th className="p-2 border">الاسم</th>
+              <th className="p-2 border">المستوى</th>
+              <th className="p-2 border">نوع الحساب</th>
+              <th className="p-2 border">المجموعة</th>
+              <th className="p-2 border">العملة</th>
+              <th className="p-2 border">الفرع</th>
+              <th className="p-2 border">مركز التكلفة</th>
+              <th className="p-2 border">إجراءات</th>
+            </tr>
+          </thead>
+          <tbody>
+            {accountsList.map((acct) => (
+              <tr key={acct.id} className="hover:bg-gray-50">
+                <td className="p-2 border">{acct.code}</td>
+                <td className="p-2 border">{acct.name}</td>
+                <td className="p-2 border">{acct.level}</td>
+                <td className="p-2 border">{getNameById(accountTypes, acct.accountTypeId)}</td>
+                <td className="p-2 border">{getNameById(groups, acct.groupId)}</td>
+                <td className="p-2 border">{getNameById(currencies, acct.currencyId)}</td>
+                <td className="p-2 border">{getNameById(branches, acct.branchId)}</td>
+                <td className="p-2 border">{getNameById(costCenters, acct.costCenterId)}</td>
+                <td className="p-2 border space-x-2">
+                  <button
+                    onClick={() => handleEdit(acct)}
+                    className="text-blue-600 hover:underline"
+                  >
+                    تعديل
+                  </button>
+                  <button
+                    onClick={() => handleDelete(acct.id)}
+                    className="text-red-600 hover:underline"
+                  >
+                    حذف
+                  </button>
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {accounts.map((acc, i) => (
-                <tr key={i} className="odd:bg-white even:bg-gray-50">
-                  <td className="border p-2 text-center">{i + 1}</td>
-                  <td className="border p-2">{acc.code}</td>
-                  <td className="border p-2">{acc.name}</td>
-                  <td className="border p-2">{acc.level}</td>
-                  <td className="border p-2">{acc.type}</td>
-                  <td className="border p-2">{acc.currency}</td>
-                  <td className="border p-2">{acc.branch}</td>
-                  <td className="border p-2">{acc.costCenter}</td>
-                  <td className="border p-2 space-x-2 text-center">
-                    <button
-                      onClick={() => handleEdit(i)}
-                      className="text-sm bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600"
-                    >
-                      تعديل
-                    </button>
-                    <button
-                      onClick={() => handleDelete(i)}
-                      className="text-sm bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
-                    >
-                      حذف
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

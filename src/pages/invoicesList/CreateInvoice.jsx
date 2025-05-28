@@ -1,209 +1,225 @@
-// 📁 src/pages/CreateInvoice.jsx
-import { useState } from "react";
-import { toast } from "react-hot-toast";
-import CenteredToast from "../../components/CenteredToast";
-import LoadingSpinner from "../../components/LoadingSpinner";
-export default function CreateInvoice() {
-  const [invoice, setInvoice] = useState({
-    customer: "",
-    date: new Date().toISOString().split("T")[0],
-    items: [{ description: "", quantity: 1, price: 0 }],
+import { useEffect, useState } from "react";
+import axios from "axios";
+
+export default function Invoices() {
+  const [form, setForm] = useState({
+    customerName: "",
+    totalAmount: "",
+    invoiceType: "",
+    description: "",
+    itemDescription: "",
+    itemQuantity: "",
+    itemUnitPrice: "",
+    paymentAmount: "",
+    paymentMethod: "",
+    paymentReference: "",
+    paymentDescription: "",
   });
-  const [isLoading, setIsLoading] = useState(false);
 
+  const [invoices, setInvoices] = useState([]);
+  const [editingStatusId, setEditingStatusId] = useState(null); // تتبع حالة التعديل
+  const [newStatus, setNewStatus] = useState(""); // الحالة الجديدة المؤقتة
 
-  const handleItemChange = (index, field, value) => {
-    const updatedItems = [...invoice.items];
-    updatedItems[index][field] = field === "description" ? value : parseFloat(value);
-    setInvoice({ ...invoice, items: updatedItems });
+  const baseUrl = "http://localhost:3001/api/invoice";
+
+  const invoiceTypes = ["نقدية", "آجل", "أقساط"];
+  const paymentMethods = ["نقدي", "تحويل بنكي", "بطاقة ائتمان"];
+  const referenceOptions = ["REF001", "REF002", "REF003"];
+  const itemDescriptions = ["سلعة A", "خدمة B", "سلعة C"];
+  const descriptionOptions = ["فاتورة بيع", "فاتورة صيانة", "فاتورة استشارة"];
+  const paymentDescriptions = ["دفعة أولى", "تحصيل كامل", "سداد جزئي"];
+  const statusOptions = ["pending", "paid", "cancelled", "refunded"];
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const addItem = () => {
-    setIsLoading(true)
-    setTimeout(() => {
-      setInvoice({
-      ...invoice,
-      items: [...invoice.items, { description: "", quantity: 1, price: 0 }],
-    });
-    toast.custom(() => (
-      <CenteredToast
-        message="✅ تمت إضافة عنصر جديد"
-        bgColor="bg-green-100"
-        textColor="text-green-800"
-        borderColor="border-green-400"
-      />
-    ));
-    setIsLoading(false)
-    }, 500);
-    
-  };
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const payload = {
+      customerName: form.customerName,
+      totalAmount: parseFloat(form.totalAmount),
+      invoiceType: form.invoiceType,
+      description: form.description,
+      items: [
+        {
+          description: form.itemDescription,
+          quantity: parseInt(form.itemQuantity),
+          unitPrice: parseFloat(form.itemUnitPrice),
+        },
+      ],
+      payment: {
+        amount: parseFloat(form.paymentAmount),
+        method: form.paymentMethod,
+        reference: form.paymentReference,
+        description: form.paymentDescription,
+      },
+    };
 
-  const removeItem = (index) => {
-    setIsLoading(true)
-    setTimeout(() => {
-       const updatedItems = invoice.items.filter((_, i) => i !== index);
-    setInvoice({ ...invoice, items: updatedItems });
-    toast.custom(() => (
-      <CenteredToast
-        message="🗑️ تم حذف العنصر"
-        bgColor="bg-red-100"
-        textColor="text-red-800"
-        borderColor="border-red-400"
-      />
-    ));
-    setIsLoading(false)
-    }, 500);
-   
-  };
-
-  const total = invoice.items.reduce((sum, item) => sum + item.quantity * item.price, 0);
-
-  const handlePrint = () => {
-    setIsLoading(true)
-    setTimeout(() => {
-      if (invoice.items.length === 0) {
-      toast.custom(() => (
-        <CenteredToast
-          message="🚫 لا يمكن طباعة فاتورة فارغة"
-          bgColor="bg-yellow-100"
-          textColor="text-yellow-800"
-          borderColor="border-yellow-400"
-        />
-      ));
-      return;
+    try {
+      await axios.post(`${baseUrl}/create`, payload);
+      fetchInvoices();
+      setForm({
+        customerName: "",
+        totalAmount: "",
+        invoiceType: "",
+        description: "",
+        itemDescription: "",
+        itemQuantity: "",
+        itemUnitPrice: "",
+        paymentAmount: "",
+        paymentMethod: "",
+        paymentReference: "",
+        paymentDescription: "",
+      });
+    } catch (err) {
+      console.error(err);
     }
-    toast.custom(() => (
-      <CenteredToast
-        message="🖨️ جاري التحضير للطباعة"
-      />
-    ));
-    window.print();
-    setIsLoading(false)
-    }, 500);
-    
   };
 
-  const handleSave = () => {
-    setIsLoading(true)
-    setTimeout(() => {
-       toast.custom(() => (
-      <CenteredToast
-        message="💾 تم حفظ الفاتورة بنجاح"
-        bgColor="bg-blue-100"
-        textColor="text-blue-800"
-        borderColor="border-blue-400"
-      />
-    ));
-    setIsLoading(false)
-    }, 500);
-   
+  const fetchInvoices = async () => {
+    try {
+      const res = await axios.get(`${baseUrl}/index`);
+      setInvoices(res.data);
+    } catch (err) {
+      console.error(err);
+    }
   };
+
+  const handleCancel = async (id) => {
+    try {
+      await axios.put(`${baseUrl}/cancel`, { invoiceId: id });
+      fetchInvoices();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      await axios.delete(`${baseUrl}/${id}`);
+      fetchInvoices();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleStartEdit = (id, currentStatus) => {
+    setEditingStatusId(id);
+    setNewStatus(currentStatus);
+  };
+
+  const handleSaveStatus = async (id) => {
+    try {
+      await axios.put(`${baseUrl}/update`, {
+        invoiceId: id,
+        status: newStatus,
+      });
+      setEditingStatusId(null);
+      fetchInvoices();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingStatusId(null);
+    setNewStatus("");
+  };
+
+  useEffect(() => {
+    fetchInvoices();
+  }, []);
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <h2 className="text-2xl font-bold mb-6">إنشاء فاتورة</h2>
-       {isLoading && <LoadingSpinner/>}
-      <div className="bg-white p-6 rounded shadow space-y-4">
-        <div className="grid md:grid-cols-2 gap-4">
-          <input
-            type="text"
-            value={invoice.customer}
-            onChange={(e) => setInvoice({ ...invoice, customer: e.target.value })}
-            placeholder="اسم العميل"
-            className="border p-2 rounded"
-          />
-          <input
-            type="date"
-            value={invoice.date}
-            onChange={(e) => setInvoice({ ...invoice, date: e.target.value })}
-            className="border p-2 rounded"
-          />
-        </div>
+    <div className="p-6 max-w-6xl mx-auto">
+      <h2 className="text-2xl font-bold mb-4">إنشاء فاتورة جديدة</h2>
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white p-4 rounded shadow">
+        <input className="border p-2 rounded" name="customerName" placeholder="اسم العميل" value={form.customerName} onChange={handleChange} />
+        <input className="border p-2 rounded" name="totalAmount" placeholder="المبلغ الإجمالي" value={form.totalAmount} onChange={handleChange} />
+        <select className="border p-2 rounded" name="invoiceType" value={form.invoiceType} onChange={handleChange}>
+          <option value="">نوع الفاتورة</option>
+          {invoiceTypes.map((type) => (
+            <option key={type} value={type}>{type}</option>
+          ))}
+        </select>
+        <select className="border p-2 rounded" name="description" value={form.description} onChange={handleChange}>
+          <option value="">الوصف</option>
+          {descriptionOptions.map((desc) => (
+            <option key={desc} value={desc}>{desc}</option>
+          ))}
+        </select>
+        <input className="border p-2 rounded" name="itemDescription" placeholder="وصف العنصر" value={form.itemDescription} onChange={handleChange} />
+        <input className="border p-2 rounded" name="itemQuantity" placeholder="الكمية" value={form.itemQuantity} onChange={handleChange} />
+        <input className="border p-2 rounded" name="itemUnitPrice" placeholder="سعر الوحدة" value={form.itemUnitPrice} onChange={handleChange} />
+        <input className="border p-2 rounded" name="paymentAmount" placeholder="قيمة الدفع" value={form.paymentAmount} onChange={handleChange} />
+        <select className="border p-2 rounded" name="paymentMethod" value={form.paymentMethod} onChange={handleChange}>
+          <option value="">طريقة الدفع</option>
+          {paymentMethods.map((method) => (
+            <option key={method} value={method}>{method}</option>
+          ))}
+        </select>
+        <select className="border p-2 rounded" name="paymentReference" value={form.paymentReference} onChange={handleChange}>
+          <option value="">المرجع</option>
+          {referenceOptions.map((ref) => (
+            <option key={ref} value={ref}>{ref}</option>
+          ))}
+        </select>
+        <select className="border p-2 rounded" name="paymentDescription" value={form.paymentDescription} onChange={handleChange}>
+          <option value="">وصف الدفع</option>
+          {paymentDescriptions.map((desc) => (
+            <option key={desc} value={desc}>{desc}</option>
+          ))}
+        </select>
+        <button className="col-span-2 bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700" type="submit">حفظ الفاتورة</button>
+      </form>
 
-        <table className="w-full mt-4 border">
-          <thead>
-            <tr className="bg-gray-100">
-              <th className="p-2 border">الوصف</th>
-              <th className="p-2 border">الكمية</th>
-              <th className="p-2 border">السعر</th>
-              <th className="p-2 border">الإجمالي</th>
-              <th className="p-2 border">إجراء</th>
+      <h2 className="text-2xl font-bold mt-8 mb-4">قائمة الفواتير</h2>
+      <table className="w-full border text-center bg-white rounded shadow">
+        <thead className="bg-gray-200">
+          <tr>
+            <th className="p-2">#</th>
+            <th className="p-2">اسم العميل</th>
+            <th className="p-2">المبلغ</th>
+            <th className="p-2">النوع</th>
+            <th className="p-2">الوصف</th>
+            <th className="p-2">الحالة</th>
+            <th className="p-2">إجراءات</th>
+          </tr>
+        </thead>
+        <tbody>
+          {invoices.map((inv, index) => (
+            <tr key={inv.id} className="border-t">
+              <td className="p-2">{index + 1}</td>
+              <td className="p-2">{inv.customerName}</td>
+              <td className="p-2">{inv.totalAmount}</td>
+              <td className="p-2">{inv.invoiceType}</td>
+              <td className="p-2">{inv.description}</td>
+              <td className="p-2">
+                {editingStatusId === inv.id ? (
+                  <div className="flex items-center gap-2">
+                    <select className="border p-1 rounded" value={newStatus} onChange={(e) => setNewStatus(e.target.value)}>
+                      {statusOptions.map((status) => (
+                        <option key={status} value={status}>{status}</option>
+                      ))}
+                    </select>
+                    <button className="text-green-600 hover:underline" onClick={() => handleSaveStatus(inv.id)}>حفظ</button>
+                    <button className="text-red-600 hover:underline" onClick={handleCancelEdit}>إلغاء</button>
+                  </div>
+                ) : (
+                  <span>{inv.status}</span>
+                )}
+              </td>
+              <td className="p-2 space-x-2 rtl:space-x-reverse">
+                <button className="text-yellow-600 hover:underline" onClick={() => handleStartEdit(inv.id, inv.status)}>تعديل الحالة</button>
+                <button className="text-blue-600 hover:underline" onClick={() => handleCancel(inv.id)}>إلغاء</button>
+                <button className="text-red-600 hover:underline" onClick={() => handleDelete(inv.id)}>حذف</button>
+              </td>
             </tr>
-          </thead>
-          <tbody>
-            {invoice.items.map((item, index) => (
-              <tr key={index}>
-                <td className="border p-2">
-                  <input
-                    type="text"
-                    value={item.description}
-                    onChange={(e) => handleItemChange(index, "description", e.target.value)}
-                    className="w-full border rounded p-1"
-                  />
-                </td>
-                <td className="border p-2">
-                  <input
-                    type="number"
-                    value={item.quantity}
-                    min="1"
-                    onChange={(e) => handleItemChange(index, "quantity", e.target.value)}
-                    className="w-full border rounded p-1"
-                  />
-                </td>
-                <td className="border p-2">
-                  <input
-                    type="number"
-                    value={item.price}
-                    min="0"
-                    onChange={(e) => handleItemChange(index, "price", e.target.value)}
-                    className="w-full border rounded p-1"
-                  />
-                </td>
-                <td className="border p-2 text-center">
-                  {(item.quantity * item.price).toLocaleString(undefined, {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}
-                </td>
-                <td className="border p-2 text-center">
-                  <button
-                    onClick={() => removeItem(index)}
-                    className="text-red-600 hover:underline"
-                  >
-                    حذف
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
-        <button
-          onClick={addItem}
-          className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
-        >
-          إضافة عنصر
-        </button>
-
-        <div className="text-right font-bold text-lg mt-4">
-          الإجمالي: {total.toLocaleString(undefined, { minimumFractionDigits: 2 })} ريال
-        </div>
-
-        <div className="flex gap-4 justify-end">
-          <button
-            onClick={handleSave}
-            className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700"
-          >
-            حفظ الفاتورة
-          </button>
-          <button
-            onClick={handlePrint}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-          >
-            طباعة الفاتورة
-          </button>
-        </div>
-      </div>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

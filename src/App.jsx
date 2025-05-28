@@ -1,71 +1,17 @@
-// ✅ المرحلة الأولى: الهيكل الأساسي للمشروع
-
-// import { BrowserRouter as Router, Routes, Route ,Navigate } from 'react-router-dom';
-// import { useState } from 'react';
-// import './index.css';
-
-// // ✅ استيراد المكونات من المجلدات الجديدة
-// import Sidebar from './components/Sidebar';
-// import Topbar from './components/Topbar';
-// import Placeholder from './components/Placeholder';
-
-// // ✅ استيراد الصفحات
-// import Dashboard from './pages/Dashboard';
-// import JournalEntries from './pages/JournalEntries';
-// import AccountsTree from './pages/AccountsTree';
-// import Reports from './pages/Reports';
-// import FiscalYears from './pages/FiscalYears';
-// import Login from './pages/Login';
-// import ForgotPassword from './pages/ForgotPassword';
-// import TrialBalance from './pages/TrialBalance';
-// import BalanceSheet from './pages/BalanceSheet';
-
-// export default function App() {
-//   const [lang, setLang] = useState('ar');
-//   const [username, setUsername] = useState('');
-//   const toggleLang = () => {
-//     setLang((prev) => (prev === 'ar' ? 'en' : 'ar'));
-//   };
-//   // const toggleLang = () => setLang(lang === 'ar' ? 'en' : 'ar');
-//   // const [username, setUsername] = useState('');
-//   return (
-//     <Router>
-//          <Routes>
-//          <Route path="/login" element={<Login lang={lang} setUsername={setUsername} />} />
-//           <Route path="/forgot-password" element={<ForgotPassword lang={lang} />} />
-
-//         {username ? (
-//           <>
-//             <Route path="/" element={<Dashboard lang={lang} />} />
-//             <Route path="/journal" element={<JournalEntries lang={lang} />} />
-//             <Route path="/accounts" element={<AccountsTree lang={lang} />} />
-//             <Route path="/reports" element={<Reports lang={lang} />} />
-//             <Route path="/fiscal-years" element={<FiscalYears lang={lang} />} />
-//             <Route path="/trial-balance" element={<TrialBalance lang={lang} />} />
-//             <Route path="/balance-sheet" element={<BalanceSheet lang={lang} />} />
-//           </>
-//         ) : (
-//           <Route path="*" element={<Navigate to="/login" />} />
-//         )}
-//       </Routes>
-//     </Router>
-//   );
-// }
-
-
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useState , useEffect } from 'react';
 import './index.css';
+import "./i18n";
 
 import DashboardLayout from './layouts/DashboardLayout';
 import Login from './pages/Login';
 import ForgotPassword from './pages/ForgotPassword';
 import Dashboard from './pages/Dashboard';
-import JournalEntries from './pages/Jourrnal/JournalEntries';
-import GeneralLedger from './pages/Jourrnal/GeneralLedger';
+
+import GeneralLedger from './pages/ledger/GeneralLedger';
 import CostCenters from './pages/costCenters/CostCenters';
-import AccountsTree from './pages/accounts/AccountsTree';
 import Reports from './pages/reports/Reports';
+
 import FiscalYears from './pages/fiscal-years/FiscalYears';
 import TrialBalance from './pages/Jourrnal/TrialBalance';
 import BalanceSheet from './pages/Jourrnal/BalanceSheet';
@@ -78,23 +24,57 @@ import ProfilesPage from './pages/ProfilesPage';
 import InvoicesList from './pages/invoicesList/InvoicesList';
 import CreateInvoice from './pages/invoicesList/CreateInvoice';
 import InvoiceDetails from './pages/invoicesList/CollectInvoice';
+import InvoiceRefund from './pages/invoicesList/InvoiceRefund';
 import { Toaster } from 'react-hot-toast';
+import Agents from './pages/agents/Agents';
+import JournalEntryForm from './pages/Jourrnal/JournalEntryForm';
+import FinancialYearClose from './pages/fiscal-years/FinancialYearClose';
+import OpeningBudget from './pages/budget/OpeningBudget';
+import CompareBudgets from './pages/budget/CompareBudgets';
+import CloseBudget from './pages/budget/CloseBudget';
+import Journal from './pages/Jourrnal/Journal';
+import InvoicePreviewPage from './InvoicePreviewPage/InvoicePreviewPage';
+import CostCenterReport from './pages/reports/CostCenterReport';
+
+
 export default function App() {
   const [lang, setLang] = useState('ar');
   const [username, setUsername] = useState('');
   const [isAppLoading, setIsAppLoading] = useState(true);
+
   const toggleLang = () => {
     setLang((prev) => (prev === 'ar' ? 'en' : 'ar'));
   };
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsAppLoading(false);
-    }, 1500);
 
-    return () => clearTimeout(timer);
+  // تحقق من الجلسة عند تحميل التطبيق
+  useEffect(() => {
+    async function checkSession() {
+      try {
+        const res = await fetch('http://your-server.com/api/check-session', {
+          method: 'GET',
+          credentials: 'include', // إرسال الكوكيز مع الطلب
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.username) {
+            setUsername(data.username);
+          } else {
+            setUsername('');
+          }
+        } else {
+          setUsername('');
+        }
+      } catch (error) {
+        setUsername('');
+      } finally {
+        setIsAppLoading(false);
+      }
+    }
+
+    checkSession();
   }, []);
 
-   if (isAppLoading) {
+  if (isAppLoading) {
     return (
       <div className="flex justify-center items-center h-screen bg-white">
         <svg className="animate-spin h-10 w-10 text-blue-600" viewBox="0 0 24 24">
@@ -117,12 +97,10 @@ export default function App() {
     );
   }
 
-
   return (
-    
     <Router>
-     <Toaster
-        position="top-left" // يمكنك استخدام "bottom-center" أيضاً
+      <Toaster
+        position="top-left"
         toastOptions={{
           style: {
             padding: "12px 16px",
@@ -132,96 +110,60 @@ export default function App() {
         }}
       />
       <Routes>
-         
-        <Route path="/login" element={<Login lang={lang} setUsername={setUsername} />} />
-        <Route path="/forgot-password" element={<ForgotPassword lang={lang} />} />
-        
+        {/* منع دخول صفحة تسجيل الدخول إذا كان مسجل دخول */}
+        <Route
+          path="/login"
+          element={username ? <Navigate to="/" /> : <Login lang={lang} setUsername={setUsername} />}
+        />
+        <Route
+          path="/forgot-password"
+          element={username ? <Navigate to="/" /> : <ForgotPassword lang={lang} />}
+        />
+
         {username ? (
-          <Route path="/" element={<DashboardLayout lang={lang} toggleLang={toggleLang} username={username} />}
+          <Route
+            path="/"
+            element={
+              <DashboardLayout
+                lang={lang}
+                toggleLang={toggleLang}
+                username={username}
+                setUsername={setUsername}
+              />
+            }
           >
-            
-            <Route path='/' element={<Dashboard lang={lang} />} />
-            <Route path="/journal" element={<JournalEntries lang={lang} />} />
-            <Route path="/accounts" element={<AccountsTree lang={lang} />} />
+            <Route path="/" element={<Dashboard lang={lang} />} />
+            <Route path="/journal" element={<Journal lang={lang} />} />
+            <Route path="/journal-form" element={<JournalEntryForm lang={lang} />} />
             <Route path="/accounts/accounts" element={<AccountsPage />} />
             <Route path="/accounts/groups" element={<GroupsPage />} />
             <Route path="/accounts/types" element={<TypesPage />} />
-
             <Route path="/Invoices" element={<InvoicesList />} />
             <Route path="/collect-invoice" element={<InvoiceDetails />} />
-            <Route path="/create-invoice" element={<CreateInvoice />} />
-
+            <Route path="/invoice" element={<CreateInvoice />} />
+            <Route path="/invoice/preview/:id" element={<InvoicePreviewPage />} />
+            <Route path="/invoice-refund" element={<InvoiceRefund />} />
             <Route path="/branch" element={<BranchPage />} />
-            <Route path="/ledger" element={< GeneralLedger/>} />
+            <Route path="/ledger" element={<GeneralLedger />} />
             <Route path="/Currency" element={<Currencies />} />
             <Route path="/costcenter" element={<CostCenters />} />
             <Route path="/profile" element={<ProfilesPage />} />
-
+            <Route path="/agents" element={<Agents />} />
+            <Route path="/opening-budget" element={<OpeningBudget />} />
+            <Route path="/compare-budget" element={<CompareBudgets />} />
+            <Route path="/close-budget" element={<CloseBudget />} />
             <Route path="/reports" element={<Reports lang={lang} />} />
+            <Route path="/cost-center-report" element={<CostCenterReport/>} />
             <Route path="/fiscal-years" element={<FiscalYears lang={lang} />} />
+            <Route path="/fiscal-years-close" element={<FinancialYearClose lang={lang} />} />
             <Route path="/trial-balance" element={<TrialBalance lang={lang} />} />
             <Route path="/balance-sheet" element={<BalanceSheet lang={lang} />} />
           </Route>
         ) : (
+          // إذا لم يكن مسجل دخول، كل طلب يتم تحويله إلى صفحة تسجيل الدخول
           <Route path="*" element={<Navigate to="/login" />} />
         )}
       </Routes>
     </Router>
   );
 }
-
-
-
-
-
-
-
-
-// // ✅ المرحلة الأولى: الهيكل الأساسي للمشروع
-
-// import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-// import { useState } from 'react';
-// import './index.css';
-
-// // ✅ استيراد المكونات من المجلدات الجديدة
-// import Sidebar from './components/Sidebar';
-// import Topbar from './components/Topbar';
-// import Placeholder from './components/Placeholder';
-
-// // ✅ استيراد الصفحات (لاحقًا يمكن بناءها كاملة)
-// import Dashboard from './pages/Dashboard';
-// import JournalEntries from './pages/JournalEntries';
-// import AccountsTree from './pages/AccountsTree';
-// import Reports from './pages/Reports';
-// import FiscalYears from './pages/FiscalYears';
-// import Login from './pages/Login';
-// import ForgotPassword from './pages/ForgotPassword';
-// import TrialBalance from './pages/TrialBalance';
-// import BalanceSheet from './pages/BalanceSheet';
-
-// export default function App() {
-//   const [lang, setLang] = useState('ar');
-//   const toggleLang = () => setLang(lang === 'ar' ? 'en' : 'ar');
-
-//   return (
-//     <Router>
-//       <div className="flex">
-//         <Sidebar toggleLang={toggleLang} lang={lang} />
-//         <div className="flex-1">
-//           <Topbar lang={lang} />
-//           <Routes>
-//             <Route path="/" element={<Dashboard lang={lang} />} />
-//             <Route path="/journal" element={<JournalEntries lang={lang} />} />
-//             <Route path="/accounts" element={<AccountsTree lang={lang} />} />
-//             <Route path="/reports" element={<Reports lang={lang} />} />
-//             <Route path="/fiscal-years" element={<FiscalYears lang={lang} />} />
-//             <Route path="/login" element={<Login lang={lang} />} />
-//             <Route path="/forgot-password" element={<ForgotPassword lang={lang} />} />
-//             <Route path="/trial-balance" element={<TrialBalance lang={lang} />} />
-//             <Route path="/balance-sheet" element={<BalanceSheet lang={lang} />} />
-//           </Routes>
-//         </div>
-//       </div>
-//     </Router>
-//   );
-// }

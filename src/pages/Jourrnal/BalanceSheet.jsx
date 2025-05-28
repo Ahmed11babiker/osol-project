@@ -1,154 +1,138 @@
-// 📁 src/pages/Jourrnal/BalanceSheet.jsx
-import { useState } from "react";
-import { toast } from "react-hot-toast";
-import CenteredToast from "../../components/CenteredToast";
-import LoadingSpinner from "../../components/LoadingSpinner";
-export default function BalanceSheet() {
-  const [fromDate, setFromDate] = useState("");
-  const [toDate, setToDate] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  // بيانات الميزانية مع تواريخ
-  const [balanceSheet] = useState({
-    assets: [
-      { name: "النقد", amount: 5000, date: "2025-01-10" },
-      { name: "الحسابات المدينة", amount: 3000, date: "2025-04-01" },
-    ],
-    liabilities: [
-      { name: "الدائنون", amount: 2000, date: "2025-02-05" },
-      { name: "قرض قصير الأجل", amount: 1000, date: "2025-03-20" },
-    ],
-    equity: [
-      { name: "رأس المال", amount: 4000, date: "2025-01-01" },
-      { name: "الأرباح المتراكمة", amount: 1000, date: "2025-04-10" },
-    ],
-  });
+import { useEffect, useState, useRef } from 'react';
+import axios from 'axios';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
-  // تصفية البيانات حسب التاريخ
-  const filterByDate = (items) => {
+const BalanceSheet = () => {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const printRef = useRef(null); // المرجع للطباعة
 
-    return items.filter(item => {
-      const itemDate = new Date(item.date);
-      const from = fromDate ? new Date(fromDate) : null;
-      const to = toDate ? new Date(toDate) : null;
-      return (
-        (!from || itemDate >= from) &&
-        (!to || itemDate <= to)
-      );
-    });
-  };
+  useEffect(() => {
+    fetchData();
+  }, []);
 
-  const filteredAssets = filterByDate(balanceSheet.assets);
-  const filteredLiabilities = filterByDate(balanceSheet.liabilities);
-  const filteredEquity = filterByDate(balanceSheet.equity);
-
-  const total = (list) => list.reduce((sum, item) => sum + Number(item.amount), 0);
-  const totalAssets = total(filteredAssets);
-  const totalLiabilities = total(filteredLiabilities);
-  const totalEquity = total(filteredEquity);
-
-  const handlePrint = () => {
-    setIsLoading(true)
-    setTimeout(() => {
-      if (fromDate && toDate && new Date(fromDate) > new Date(toDate)) {
-      toast.custom(() => (
-        <CenteredToast
-          message="⚠️ تأكد من صحة نطاق التواريخ"
-          bgColor="bg-yellow-100"
-          textColor="text-yellow-800"
-          borderColor="border-yellow-400"
-        />
-      ));
-      setIsLoading(false)
-      return;
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const response = await axios.get('http://localhost:3001/api/balance-sheet/getBalanceSheet', {
+        params: startDate && endDate ? { startDate, endDate } : {}
+      });
+      setData(response.data);
+    } catch (error) {
+      console.error('Error fetching balance sheet:', error);
+    } finally {
+      setLoading(false);
     }
-    toast.custom(() => (
-      <CenteredToast
-        message="🖨️ جاري تحضير الطباعة"
-      />
-    ));
-    window.print();
-    setIsLoading(false)
-    }, 500);
-    
   };
+
+  const handlePrint = async () => {
+    const element = printRef.current;
+    const canvas = await html2canvas(element, { scale: 2 });
+    const imgData = canvas.toDataURL('image/png');
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+    pdf.save('balance-sheet.pdf');
+  };
+
+  if (loading) return <div className="text-center mt-10">Loading...</div>;
+  if (!data) return <div className="text-center mt-10">No data available.</div>;
+
+  const { summary, breakdown } = data;
+
+  const renderSection = (title, items, color = 'text-gray-800') => (
+    <div className="bg-white rounded-xl shadow-md p-4">
+      <h2 className={`text-lg font-semibold mb-2 ${color}`}>{title}</h2>
+      {items.length === 0 ? (
+        <p className="text-sm text-gray-500">No records found.</p>
+      ) : (
+        <ul className="space-y-1">
+          {items.map((item, idx) => (
+            <li key={idx} className="flex justify-between text-sm">
+              <span>{item.name}</span>
+              <span className="font-semibold">{item.balance.toFixed(2)}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <h2 className="text-2xl font-bold mb-4">الميزانية العمومية</h2>
-      {isLoading && <LoadingSpinner/>}
-      {/* اختيار الفترة */}
-      <div className="flex flex-col md:flex-row gap-4 mb-6">
-        <div className="flex flex-col">
-          <label className="mb-1 font-medium">من تاريخ:</label>
-          <input
-            type="date"
-            value={fromDate}
-            onChange={(e) => setFromDate(e.target.value)}
-            className="border p-2 rounded"
-          />
-        </div>
-        <div className="flex flex-col">
-          <label className="mb-1 font-medium">إلى تاريخ:</label>
-          <input
-            type="date"
-            value={toDate}
-            onChange={(e) => setToDate(e.target.value)}
-            className="border p-2 rounded"
-          />
-        </div>
+    <div className="p-6 bg-gray-100 min-h-screen">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">📊 Balance Sheet</h1>
         <button
           onClick={handlePrint}
-          className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 self-end print:hidden"
+          className="bg-green-600 text-white px-4 py-1 rounded hover:bg-green-700"
         >
-          🖨️ طباعة الميزانية
+          طباعة PDF
         </button>
       </div>
 
-      {/* عرض البيانات المفلترة */}
-      <div className="mb-6">
-        <h3 className="text-xl font-semibold mb-2">الأصول</h3>
-        <ul className="space-y-2">
-          {filteredAssets.map((item, index) => (
-            <li key={index} className="flex justify-between bg-gray-50 p-2 rounded">
-              <span>{item.name}</span>
-              <span>{item.amount.toLocaleString()} ريال</span>
-            </li>
-          ))}
-        </ul>
-        <div className="text-end font-bold mt-2">الإجمالي: {totalAssets.toLocaleString()} ريال</div>
+      {/* Filter */}
+      <div className="flex gap-4 mb-6">
+        <input
+          type="date"
+          value={startDate}
+          onChange={(e) => setStartDate(e.target.value)}
+          className="border px-3 py-1 rounded"
+        />
+        <input
+          type="date"
+          value={endDate}
+          onChange={(e) => setEndDate(e.target.value)}
+          className="border px-3 py-1 rounded"
+        />
+        <button
+          onClick={fetchData}
+          className="bg-blue-600 text-white px-4 py-1 rounded hover:bg-blue-700"
+        >
+          Filter
+        </button>
       </div>
 
-      <div className="mb-6">
-        <h3 className="text-xl font-semibold mb-2">الخصوم</h3>
-        <ul className="space-y-2">
-          {filteredLiabilities.map((item, index) => (
-            <li key={index} className="flex justify-between bg-gray-50 p-2 rounded">
-              <span>{item.name}</span>
-              <span>{item.amount.toLocaleString()} ريال</span>
-            </li>
-          ))}
-        </ul>
-        <div className="text-end font-bold mt-2">الإجمالي: {totalLiabilities.toLocaleString()} ريال</div>
-      </div>
+      {/* Printable Content */}
+      <div ref={printRef}>
+        
+        {/* Summary */}
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
+          <div className="bg-blue-100 rounded-xl p-4 text-blue-800">
+            <h2 className="text-sm">Assets</h2>
+            <p className="text-lg font-bold">{summary.assets.toFixed(2)}</p>
+          </div>
+          <div className="bg-red-100 rounded-xl p-4 text-red-800">
+            <h2 className="text-sm">Liabilities</h2>
+            <p className="text-lg font-bold">{summary.liabilities.toFixed(2)}</p>
+          </div>
+          <div className="bg-green-100 rounded-xl p-4 text-green-800">
+            <h2 className="text-sm">Equity</h2>
+            <p className="text-lg font-bold">{summary.equity.toFixed(2)}</p>
+          </div>
+          <div className="bg-yellow-100 rounded-xl p-4 text-yellow-800">
+            <h2 className="text-sm">Revenue</h2>
+            <p className="text-lg font-bold">{summary.revenue.toFixed(2)}</p>
+          </div>
+          <div className="bg-purple-100 rounded-xl p-4 text-purple-800">
+            <h2 className="text-sm">Expenses</h2>
+            <p className="text-lg font-bold">{summary.expenses.toFixed(2)}</p>
+          </div>
+        </div>
 
-      <div className="mb-6">
-        <h3 className="text-xl font-semibold mb-2">حقوق الملكية</h3>
-        <ul className="space-y-2">
-          {filteredEquity.map((item, index) => (
-            <li key={index} className="flex justify-between bg-gray-50 p-2 rounded">
-              <span>{item.name}</span>
-              <span>{item.amount.toLocaleString()} ريال</span>
-            </li>
-          ))}
-        </ul>
-        <div className="text-end font-bold mt-2">الإجمالي: {totalEquity.toLocaleString()} ريال</div>
-      </div>
-
-      <div className="text-center font-bold text-lg mt-4 text-blue-700">
-        {totalAssets === totalLiabilities + totalEquity
-          ? "✅ الميزانية متوازنة"
-          : "❌ الميزانية غير متوازنة"}
+        {/* Breakdown */}
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {renderSection('Assets', breakdown.assets, 'text-blue-700')}
+          {renderSection('Liabilities', breakdown.liabilities, 'text-red-700')}
+          {renderSection('Revenue', breakdown.revenue, 'text-yellow-700')}
+          {renderSection('Expenses', breakdown.expenses, 'text-purple-700')}
+        </div>
       </div>
     </div>
   );
-}
+};
+
+export default BalanceSheet;

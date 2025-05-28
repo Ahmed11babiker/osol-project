@@ -11,6 +11,41 @@
     "Accounting System": "Accounting System",
     "Accounts": "Accounts",
     "Account Groups": "Account Groups",
-    "Account Types": "Account Types"
+    "Account Types": "Account Types",
+
+  "menu": {
+    "Accounting System": "Accounting System",
+    "dashboard": "Dashboard",
+    "setup": "Setup",
+    "accounts": "Accounts",
+    "accounts-main": "Accounts",
+    "account-types": "Account Types",
+    "account-groups": "Account Groups",
+    "opening-budget": "Opening Budget",
+    "budget": "Budget",
+    "compare-budget": "Budget Comparison",
+    "close-budget": "Close Budget",
+    "fiscal-years": "Fiscal Years",
+    "fiscal-create": "Create",
+    "fiscal-close": "Close",
+    "branches": "Branches",
+    "currency": "Currency",
+    "cost-center": "Cost Center",
+    "agents": "Agents",
+    "reports": "Reports",
+    "profit-reports": "Profit Reports",
+    "balance-sheet": "Balance Sheet",
+    "trial-balance": "Trial Balance",
+    "ledger": "Ledger",
+    "operations": "Operations",
+    "invoices": "Invoices",
+    "create-invoice": "Create Invoice",
+    "collect-invoice": "Collect Invoice",
+    "invoice-refund": "Return Invoice",
+    "journal-entries": "Journal Entries",
+    "entries": "Entries",
+    "create-entry": "Create Entry"
   }
+}
+
   

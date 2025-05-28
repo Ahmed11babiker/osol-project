@@ -1,206 +1,298 @@
-// 📁 src/pages/CollectInvoice.jsx
-import { useState } from "react";
-import { toast } from "react-hot-toast";
-import CenteredToast from "../../components/CenteredToast";
-import LoadingSpinner from "../../components/LoadingSpinner";
-export default function CollectInvoice() {
+// src/pages/CollectInvoicePage.jsx
+import React, { useEffect, useState, useRef } from "react";
+import axios from "axios";
+
+const CollectInvoicePage = () => {
   const [invoices, setInvoices] = useState([]);
+  const [accounts, setAccounts] = useState([]);
+  const [fiscalYears, setFiscalYears] = useState([]);
   const [formData, setFormData] = useState({
-    number: "",
-    date: "",
-    amount: "",
-    notes: ""
+    invoiceId: "",
+    method: "",
+    reference: "",
+    description: "",
+    debitAccountId: "",
+    creditAccountId: "",
+    fiscalYearId: "",
   });
-  const [editIndex, setEditIndex] = useState(null);
-   const [isLoading, setIsLoading] = useState(false);
+  const [message, setMessage] = useState("");
+  const [showPreview, setShowPreview] = useState(false);
+  const [selectedInvoice, setSelectedInvoice] = useState(null);
+
+  const previewRef = useRef();
+
+  const paymentMethods = ["نقدًا", "تحويل بنكي", "شيك", "بطاقة ائتمان"];
+  const descriptions = [
+    "دفعة لفاتورة الحج",
+    "دفعة لفاتورة العمرة",
+    "دفعة لفاتورة تذكرة طيران",
+  ];
+
+  useEffect(() => {
+    axios
+      .get("http://localhost:3001/api/invoice/index")
+      .then((res) => setInvoices(res.data))
+      .catch(console.error);
+
+    axios
+      .get("http://localhost:3001/api/account/index")
+      .then((res) => setAccounts(res.data))
+      .catch(console.error);
+
+    axios
+      .get("http://localhost:3001/api/year/index")
+      .then((res) => setFiscalYears(res.data.data))
+      .catch(console.error);
+  }, []);
+
+  const references = Array.from(
+    new Set(
+      invoices.flatMap((invoice) =>
+        invoice.paymentMethods
+          ?.map((pm) => pm.payment?.reference)
+          .filter(Boolean)
+      )
+    )
+  );
+
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    setIsLoading(true)
-    setTimeout(() => {
-      if (editIndex !== null) {
-      const updated = [...invoices];
-      updated[editIndex] = formData;
-      setInvoices(updated);
-      setEditIndex(null);
-      toast.custom(() => (
-        <CenteredToast
-          message="✏️ تم تحديث الفاتورة بنجاح"
-          bgColor="bg-yellow-100"
-          textColor="text-yellow-800"
-          borderColor="border-yellow-400"
-        />
-      ));
-    } else {
-      setInvoices([...invoices, formData]);
-      toast.custom(() => (
-        <CenteredToast
-          message="✅ تم تحصيل الفاتورة بنجاح"
-        />
-      ));
+  const handleCollect = async () => {
+    try {
+      const res = await axios.post(
+        "http://localhost:3001/api/invoice/collct",
+        formData
+      );
+      setMessage(res.data.message);
+      setFormData({
+        invoiceId: "",
+        method: "",
+        reference: "",
+        description: "",
+        debitAccountId: "",
+        creditAccountId: "",
+        fiscalYearId: "",
+      });
+      setShowPreview(false);
+      setSelectedInvoice(null);
+    } catch (error) {
+      setMessage(error.response?.data?.message || "حدث خطأ أثناء التحصيل");
     }
-    setFormData({ number: "", date: "", amount: "", notes: "" });
-    setIsLoading(false)
-    }, 500);
   };
 
-  const handleDelete = (index) => {
-    setIsLoading(true)
+  const handlePreview = () => {
+    const invoice = invoices.find(
+      (inv) => inv.id === parseInt(formData.invoiceId)
+    );
+    setSelectedInvoice(invoice);
+    setShowPreview(true);
     setTimeout(() => {
-       const updated = invoices.filter((_, i) => i !== index);
-    setInvoices(updated);
-    toast.custom(() => (
-      <CenteredToast
-        message="🗑️ تم حذف الفاتورة"
-        bgColor="bg-red-100"
-        textColor="text-red-800"
-        borderColor="border-red-400"
-      />
-    ));
-    setIsLoading(false)
-    }, 500);
-   
+      previewRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, 100); // تأخير بسيط لضمان ظهور العنصر
   };
 
-  const handleEdit = (index) => {
-    setIsLoading(true)
-    setTimeout(() => {
-       setFormData(invoices[index]);
-    setEditIndex(index);
-    toast.custom(() => (
-      <CenteredToast
-        message="✏️ يمكنك تعديل الفاتورة الآن"
-        bgColor="bg-blue-100"
-        textColor="text-blue-800"
-        borderColor="border-blue-400"
-      />
-    ));
-    setIsLoading(false)   
-    }, 500);
-   
-  };
-
-  const handlePrint = (invoice) => {
-    setIsLoading(true)
-    setTimeout(() => {
-      if (!invoice) return;
-    toast.custom(() => (
-      <CenteredToast
-        message="🖨️ جاري التحضير للطباعة"
-      />
-    ));
-    const content = `
-      <div style="font-family: Arial; direction: rtl; padding: 20px;">
-        <h2>فاتورة محصلة</h2>
-        <p><strong>رقم الفاتورة:</strong> ${invoice.number}</p>
-        <p><strong>تاريخ التحصيل:</strong> ${invoice.date}</p>
-        <p><strong>المبلغ:</strong> ${invoice.amount}</p>
-        <p><strong>ملاحظات:</strong> ${invoice.notes || "لا توجد"}</p>
-      </div>
-    `;
-    const win = window.open("", "PrintWindow", "width=600,height=600");
-    win.document.write(content);
-    win.document.close();
-    win.print();
-    setIsLoading(false)
-    }, 500);
-    
-    
+  const handlePrint = () => {
+    if (previewRef.current) {
+      const printContent = previewRef.current.innerHTML;
+      const printWindow = window.open("", "", "width=800,height=600");
+      printWindow.document.write(
+        `<html><head><title>فاتورة</title></head><body dir="rtl">${printContent}</body></html>`
+      );
+      printWindow.document.close();
+      printWindow.print();
+    }
   };
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <h2 className="text-2xl font-bold mb-6">تحصيل فاتورة</h2>
-      {isLoading && <LoadingSpinner/>}
-      <form onSubmit={handleSubmit} className="bg-white p-6 rounded shadow space-y-4">
-        <div className="grid gap-4 md:grid-cols-4">
-          <input
-            name="number"
-            value={formData.number}
-            onChange={handleChange}
-            placeholder="رقم الفاتورة"
-            className="border p-2 rounded"
-            required
-          />
-          <input
-            type="date"
-            name="date"
-            value={formData.date}
-            onChange={handleChange}
-            className="border p-2 rounded"
-            required
-          />
-          <input
-            type="number"
-            name="amount"
-            value={formData.amount}
-            onChange={handleChange}
-            placeholder="المبلغ"
-            className="border p-2 rounded"
-            required
-          />
-          <input
-            name="notes"
-            value={formData.notes}
-            onChange={handleChange}
-            placeholder="ملاحظات"
-            className="border p-2 rounded"
-          />
-        </div>
-        <button type="submit" className="bg-blue-600 text-white py-2 px-4 rounded">
-          {editIndex !== null ? "تحديث الفاتورة" : "تحصيل الفاتورة"}
-        </button>
-      </form>
+    <div className="max-w-3xl mx-auto p-4 bg-white rounded shadow">
+      <h2 className="text-xl font-semibold mb-4 text-center">تحصيل فاتورة</h2>
 
-      {invoices.length > 0 && (
-        <div className="mt-8">
-          <h3 className="text-xl font-semibold mb-4">الفواتير المحصلة</h3>
-          <table className="w-full table-auto border border-gray-300">
-            <thead>
-              <tr className="bg-gray-100">
-                <th className="border px-4 py-2">رقم الفاتورة</th>
-                <th className="border px-4 py-2">تاريخ التحصيل</th>
-                <th className="border px-4 py-2">المبلغ</th>
-                <th className="border px-4 py-2">ملاحظات</th>
-                <th className="border px-4 py-2">الخيارات</th>
-              </tr>
-            </thead>
-            <tbody>
-              {invoices.map((inv, index) => (
-                <tr key={index}>
-                  <td className="border px-4 py-2">{inv.number}</td>
-                  <td className="border px-4 py-2">{inv.date}</td>
-                  <td className="border px-4 py-2">{inv.amount}</td>
-                  <td className="border px-4 py-2">{inv.notes}</td>
-                  <td className="border px-4 py-2 space-x-2 rtl:space-x-reverse">
-                    <button
-                      onClick={() => handleEdit(index)}
-                      className="bg-yellow-500 text-white px-3 py-1 rounded"
-                    >
-                      تعديل
-                    </button>
-                    <button
-                      onClick={() => handleDelete(index)}
-                      className="bg-red-600 text-white px-3 py-1 rounded"
-                    >
-                      حذف
-                    </button>
-                    <button
-                      onClick={() => handlePrint(inv)}
-                      className="bg-green-600 text-white px-3 py-1 rounded"
-                    >
-                      طباعة
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <div className="space-y-4">
+        {/* اختيار الفاتورة */}
+        <select
+          name="invoiceId"
+          value={formData.invoiceId}
+          onChange={handleChange}
+          className="w-full border p-2 rounded"
+        >
+          <option value="">اختر الفاتورة</option>
+          {invoices.map((inv) => (
+            <option key={inv.id} value={inv.id}>
+              {`فاتورة #${inv.id} - ${inv.customerName} - ${inv.totalAmount} ريال`}
+            </option>
+          ))}
+        </select>
+
+        {/* زر معاينة الفاتورة */}
+        {formData.invoiceId && (
+          <button
+            onClick={handlePreview}
+            className="bg-gray-500 text-white py-1 px-3 rounded hover:bg-gray-600"
+          >
+            معاينة الفاتورة
+          </button>
+        )}
+
+        {/* طريقة الدفع */}
+        <select
+          name="method"
+          value={formData.method}
+          onChange={handleChange}
+          className="w-full border p-2 rounded"
+        >
+          <option value="">اختر طريقة الدفع</option>
+          {paymentMethods.map((method, idx) => (
+            <option key={idx} value={method}>
+              {method}
+            </option>
+          ))}
+        </select>
+
+        {/* رقم المرجع */}
+        <select
+          name="reference"
+          value={formData.reference}
+          onChange={handleChange}
+          className="w-full border p-2 rounded"
+        >
+          <option value="">اختر رقم المرجع</option>
+          {references.map((ref, index) => (
+            <option key={index} value={ref}>
+              {ref}
+            </option>
+          ))}
+        </select>
+
+        {/* وصف العملية */}
+        <select
+          name="description"
+          value={formData.description}
+          onChange={handleChange}
+          className="w-full border p-2 rounded"
+        >
+          <option value="">اختر وصف التحصيل</option>
+          {descriptions.map((desc, index) => (
+            <option key={index} value={desc}>
+              {desc}
+            </option>
+          ))}
+        </select>
+
+        {/* الحساب المدين */}
+        <select
+          name="debitAccountId"
+          value={formData.debitAccountId}
+          onChange={handleChange}
+          className="w-full border p-2 rounded"
+        >
+          <option value="">اختر الحساب المدين</option>
+          {accounts.map((acc) => (
+            <option key={acc.id} value={acc.id}>
+              {acc.name}
+            </option>
+          ))}
+        </select>
+
+        {/* الحساب الدائن */}
+        <select
+          name="creditAccountId"
+          value={formData.creditAccountId}
+          onChange={handleChange}
+          className="w-full border p-2 rounded"
+        >
+          <option value="">اختر الحساب الدائن</option>
+          {accounts.map((acc) => (
+            <option key={acc.id} value={acc.id}>
+              {acc.name}
+            </option>
+          ))}
+        </select>
+
+        {/* السنة المالية */}
+        <select
+          name="fiscalYearId"
+          value={formData.fiscalYearId}
+          onChange={handleChange}
+          className="w-full border p-2 rounded"
+        >
+          <option value="">اختر السنة المالية</option>
+          {fiscalYears.map((fy) => (
+            <option key={fy.id} value={fy.id}>
+              {fy.year}
+            </option>
+          ))}
+        </select>
+
+        {/* زر تنفيذ التحصيل */}
+        <button
+          onClick={handleCollect}
+          className="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700"
+        >
+          تنفيذ التحصيل
+        </button>
+
+        {message && (
+          <div className="mt-4 text-center text-green-600">{message}</div>
+        )}
+
+        {/* كرت المعاينة */}
+        {showPreview && selectedInvoice && (
+          <div
+            className="border p-4 rounded shadow mt-6 bg-gray-50 relative"
+            ref={previewRef}
+          >
+            {/* زر الإغلاق */}
+            <button
+              className="absolute top-2 left-2 text-red-600 hover:text-red-800 text-xl font-bold"
+              onClick={() => setShowPreview(false)}
+              aria-label="إغلاق"
+            >
+              &times;
+            </button>
+
+            <h3 className="text-lg font-bold mb-2 text-center">
+              معاينة الفاتورة
+            </h3>
+            <p>
+              <strong>رقم الفاتورة:</strong> {selectedInvoice.id}
+            </p>
+            <p>
+              <strong>اسم العميل:</strong> {selectedInvoice.customerName}
+            </p>
+            <p>
+              <strong>المبلغ الإجمالي:</strong> {selectedInvoice.totalAmount}{" "}
+              ريال
+            </p>
+            <p>
+              <strong>الوصف:</strong>{" "}
+              {selectedInvoice.paymentMethods?.[0]?.payment?.description ||
+                "---"}
+            </p>
+            <p>
+              <strong>طريقة الدفع:</strong>{" "}
+              {selectedInvoice.paymentMethods?.[0]?.payment?.method || "---"}
+            </p>
+            <p>
+              <strong>رقم المرجع:</strong>{" "}
+              {selectedInvoice.paymentMethods?.[0]?.payment?.reference || "---"}
+            </p>
+
+            <div className="mt-4 text-center">
+              <button
+                onClick={handlePrint}
+                className="bg-green-600 text-white py-1 px-4 rounded hover:bg-green-700"
+              >
+                طباعة
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
-}
+};
+
+export default CollectInvoicePage;

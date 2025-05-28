@@ -31,8 +31,29 @@ body.ltr .sidebar {
   right: auto;
 }
 
-/* Smooth transition for sidebar when changing language */
+/* sidebar direction handling */
 .sidebar {
-  transition: all 0.3s ease-in-out;
+  transition: transform 0.3s ease-in-out;
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  width: 16rem; /* w-64 */
+  z-index: 50;
+  background-color: #1f2937; /* bg-gray-800 */
+  color: white;
 }
+
+/* مخفي بشكل افتراضي */
+.sidebar-hidden {
+  transform: translateX(-100%);
+}
+
+body.rtl .sidebar-hidden {
+  transform: translateX(100%);
+}
+
+.sidebar-visible {
+  transform: translateX(0);
+}
+
 

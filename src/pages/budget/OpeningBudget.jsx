@@ -1,4 +1,3 @@
-// 📁 src/pages/OpeningBudget.jsx
 import { useEffect, useState } from "react";
 import axios from "axios";
 import LoadingSpinner from "../../components/LoadingSpinner";
@@ -6,6 +5,7 @@ import CenteredToast from "../../components/CenteredToast";
 
 export default function OpeningBudget() {
   const API_BASE = "http://localhost:3001/api";
+
   const [fiscalYears, setFiscalYears] = useState([]);
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -28,11 +28,14 @@ export default function OpeningBudget() {
     setLoading(true);
     try {
       const res = await axios.get(`${API_BASE}/year/index`);
-      // السنة المالية ضمن res.data.data
-      setFiscalYears(Array.isArray(res.data.data) ? res.data.data : []);
-    } catch (err) {
-      console.error("خطأ في جلب السنوات المالية:", err);
-      setToastMessage("فشل في جلب السنوات المالية.");
+      if (res.data && Array.isArray(res.data.data)) {
+        setFiscalYears(res.data.data);
+      } else {
+        setFiscalYears([]);
+      }
+    } catch (error) {
+      console.error("خطأ في جلب السنوات المالية:", error);
+      setToastMessage("حدث خطأ أثناء جلب السنوات المالية.");
     } finally {
       setLoading(false);
     }
@@ -42,17 +45,14 @@ export default function OpeningBudget() {
     setLoading(true);
     try {
       const res = await axios.get(`${API_BASE}/account/index`);
-      // إن كانت الاستجابة مباشرة مصفوفة نستخدمها، وإلا res.data.data
-      if (Array.isArray(res.data)) {
+      if (res.data && Array.isArray(res.data)) {
         setAccounts(res.data);
-      } else if (Array.isArray(res.data.data)) {
-        setAccounts(res.data.data);
       } else {
         setAccounts([]);
       }
-    } catch (err) {
-      console.error("خطأ في جلب الحسابات:", err);
-      setToastMessage("فشل في جلب الحسابات.");
+    } catch (error) {
+      console.error("خطأ في جلب الحسابات:", error);
+      setToastMessage("حدث خطأ أثناء جلب الحسابات.");
     } finally {
       setLoading(false);
     }
@@ -68,6 +68,7 @@ export default function OpeningBudget() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+
     try {
       await axios.post(`${API_BASE}/opening-balance/create`, {
         fiscalYearId: formData.fiscalYearId,
@@ -80,6 +81,7 @@ export default function OpeningBudget() {
           },
         ],
       });
+
       setToastMessage("تمت إضافة الميزانية بنجاح.");
       setFormData({
         fiscalYearId: "",
@@ -88,9 +90,9 @@ export default function OpeningBudget() {
         credit: "",
         note: "",
       });
-    } catch (err) {
-      console.error("خطأ في إرسال الميزانية:", err);
-      setToastMessage("فشل في إضافة الميزانية.");
+    } catch (error) {
+      console.error("خطأ في إرسال الميزانية:", error);
+      setToastMessage("حدث خطأ أثناء إضافة الميزانية.");
     } finally {
       setLoading(false);
     }
@@ -107,7 +109,7 @@ export default function OpeningBudget() {
 
       <form
         onSubmit={handleSubmit}
-        className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 bg-white p-4 rounded shadow"
+        className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6"
       >
         <select
           name="fiscalYearId"
@@ -173,6 +175,8 @@ export default function OpeningBudget() {
           إضافة
         </button>
       </form>
+
+      {/* جدول عرض الميزانيات لاحقًا */}
     </div>
   );
 }
