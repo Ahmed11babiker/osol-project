@@ -1,9 +1,8 @@
 // 📁 src/pages/fiscal-years/FiscalYears.jsx
 import CrudForm from "../../components/CrudForm";
-import axios from "axios";
+import axios from "../../service/axios";
 
 const FiscalYears = ({ lang }) => {
-  const baseUrl = "http://localhost:3001/api/year";
 
   // 1. تعريف الحقول التي سيستخدمها الكردفورم
   const fields = [
@@ -27,21 +26,21 @@ const FiscalYears = ({ lang }) => {
   // 2. عمليات CRUD
 
 const fetchData = async () => {
-  const response = await axios.get(`${baseUrl}/index`);
+  const response = await axios.get(`year/index`);
   return response.data.data; // أو حسب المفتاح الصحيح في الاستجابة
 };
 
 
   const createItem = async (data) => {
-    await axios.post(`${baseUrl}/create`, data);
+    await axios.post(`year/create`, data);
   };
 
   const updateItem = async (id, data) => {
-    await axios.put(`${baseUrl}/update/${id}`, data);
+    await axios.put(`year/update/${id}`, data);
   };
 
   const deleteItem = async (id) => {
-    await axios.delete(`${baseUrl}/delete/${id}`);
+    await axios.delete(`year/delete/${id}`);
   };
 
 

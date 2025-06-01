@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import axios from 'axios';
+import axios from '../../service/axios';
 import {
   BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
@@ -21,7 +21,7 @@ const ProfitReport = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const response = await axios.get('http://localhost:3001/api/profit-loss/getProfitAndLoss', {
+      const response = await axios.get('/profit-loss/getProfitAndLoss', {
         params: {
           startDate: startDate?.toISOString(),
           endDate: endDate?.toISOString()

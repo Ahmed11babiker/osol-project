@@ -1,26 +1,25 @@
 import CrudForm from "../../components/CrudForm";
-import axios from 'axios';
+import axios from '../../service/axios';
 import { useEffect } from "react";
 export default function CostCenters() {
 
 
-const baseUrl = "http://localhost:3001/api/cost-center";
 
 const fetchBranches = async () => {
-    const response = await axios.get(`${baseUrl}/index`);
+    const response = await axios.get(`cost-center/index`);
     return response.data;
   };
 
   const createBranch = async (data) => {
-    await axios.post(`${baseUrl}/create`, data);
+    await axios.post(`cost-center/create`, data);
   };
 
   const updateBranch = async (id, data) => {
-    await axios.put(`${baseUrl}/update/${id}`, data);
+    await axios.put(`cost-center/update/${id}`, data);
   };
 
   const deleteBranch = async (id) => {
-    await axios.delete(`${baseUrl}/delete/${id}`);
+    await axios.delete(`cost-center/delete/${id}`);
   };
 
 

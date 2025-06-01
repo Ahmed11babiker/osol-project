@@ -21,7 +21,7 @@ export default function Sidebar({ lang, isOpen, onClose }) {
     {
       id: "dashboard",
       icon: LayoutDashboard,
-      to: "/",
+      to: "/dashboard",
     },
     {
       id: "setup",

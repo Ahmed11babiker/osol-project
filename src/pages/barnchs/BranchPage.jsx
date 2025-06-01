@@ -1,26 +1,25 @@
 import CrudForm from '../../components/CrudForm';
-import axios from 'axios';
+import axios from '../../service/axios';
 import { useTranslation } from 'react-i18next';
 
 export default function BranchPage() {
   const { t } = useTranslation();
-  const baseUrl = 'http://localhost:3001/api/branch';
 
   const fetchBranches = async () => {
-    const response = await axios.get(`${baseUrl}/index`);
+    const response = await axios.get(`branch/index`);
     return response.data;
   };
 
   const createBranch = async (data) => {
-    await axios.post(`${baseUrl}/create`, data);
+    await axios.post(`branch/create`, data);
   };
 
   const updateBranch = async (id, data) => {
-    await axios.put(`${baseUrl}/update/${id}`, data);
+    await axios.put(`branch/update/${id}`, data);
   };
 
   const deleteBranch = async (id) => {
-    await axios.delete(`${baseUrl}/delete/${id}`);
+    await axios.delete(`branch/delete/${id}`);
   };
 
   return (

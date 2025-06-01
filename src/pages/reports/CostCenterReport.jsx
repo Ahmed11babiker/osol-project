@@ -1,6 +1,6 @@
 // src/pages/Reports/CostCenterReport.jsx
 import React, { useEffect, useState, useRef } from 'react';
-import axios from 'axios';
+import axios from '../../service/axios';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { useReactToPrint } from 'react-to-print';
@@ -23,7 +23,7 @@ const CostCenterReport = () => {
 
     setLoading(true);
     try {
-      const response = await axios.get(`http://localhost:3001/api/profit-loss/cost-centers-report`, {
+      const response = await axios.get(`/profit-loss/cost-centers-report`, {
         params: {
           startDate: startDate.toISOString(),
           endDate: endDate.toISOString()

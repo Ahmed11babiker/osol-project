@@ -1,6 +1,6 @@
-// src/pages/CollectInvoicePage.jsx
 import React, { useEffect, useState, useRef } from "react";
-import axios from "axios";
+import axios from "../../service/axios";
+import { motion, AnimatePresence } from "framer-motion";
 
 const CollectInvoicePage = () => {
   const [invoices, setInvoices] = useState([]);
@@ -19,7 +19,7 @@ const CollectInvoicePage = () => {
   const [showPreview, setShowPreview] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
 
-  const previewRef = useRef();
+  const modalRef = useRef();
 
   const paymentMethods = ["نقدًا", "تحويل بنكي", "شيك", "بطاقة ائتمان"];
   const descriptions = [
@@ -29,28 +29,27 @@ const CollectInvoicePage = () => {
   ];
 
   useEffect(() => {
-    axios
-      .get("http://localhost:3001/api/invoice/index")
+    // جلب الفواتير
+    axios.get(`invoice/index`)
       .then((res) => setInvoices(res.data))
       .catch(console.error);
 
-    axios
-      .get("http://localhost:3001/api/account/index")
+    // جلب الحسابات
+    axios.get(`account/index`)
       .then((res) => setAccounts(res.data))
       .catch(console.error);
 
-    axios
-      .get("http://localhost:3001/api/year/index")
+    // جلب السنوات المالية
+    axios.get(`year/index`)
       .then((res) => setFiscalYears(res.data.data))
       .catch(console.error);
   }, []);
 
+  // الحصول على المراجع الفريدة من طرق الدفع في الفواتير
   const references = Array.from(
     new Set(
       invoices.flatMap((invoice) =>
-        invoice.paymentMethods
-          ?.map((pm) => pm.payment?.reference)
-          .filter(Boolean)
+        invoice.paymentMethods?.map((pm) => pm.payment?.reference).filter(Boolean)
       )
     )
   );
@@ -62,10 +61,8 @@ const CollectInvoicePage = () => {
 
   const handleCollect = async () => {
     try {
-      const res = await axios.post(
-        "http://localhost:3001/api/invoice/collct",
-        formData
-      );
+      // تأكد أن المسار صحيح collect وليس collct
+      const res = await axios.post(`invoice/collect`, formData);
       setMessage(res.data.message);
       setFormData({
         invoiceId: "",
@@ -84,34 +81,47 @@ const CollectInvoicePage = () => {
   };
 
   const handlePreview = () => {
-    const invoice = invoices.find(
-      (inv) => inv.id === parseInt(formData.invoiceId)
-    );
+    const invoice = invoices.find((inv) => inv.id === parseInt(formData.invoiceId));
     setSelectedInvoice(invoice);
     setShowPreview(true);
-    setTimeout(() => {
-      previewRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, 100); // تأخير بسيط لضمان ظهور العنصر
   };
 
   const handlePrint = () => {
-    if (previewRef.current) {
-      const printContent = previewRef.current.innerHTML;
+    if (modalRef.current) {
+      const title = modalRef.current.querySelector("h3")?.outerHTML || "";
+      const table = modalRef.current.querySelector("table")?.outerHTML || "";
       const printWindow = window.open("", "", "width=800,height=600");
-      printWindow.document.write(
-        `<html><head><title>فاتورة</title></head><body dir="rtl">${printContent}</body></html>`
-      );
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>فاتورة</title>
+            <style>
+              body { font-family: Arial; direction: rtl; text-align: right; padding: 20px; }
+              table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+              th, td { border: 1px solid #ccc; padding: 8px; }
+              th { background-color: #f0f0f0; }
+            </style>
+          </head>
+          <body>
+            ${title}
+            ${table}
+          </body>
+        </html>
+      `);
       printWindow.document.close();
       printWindow.print();
     }
   };
 
+  const closeModal = () => {
+    setShowPreview(false);
+  };
+
   return (
-    <div className="max-w-3xl mx-auto p-4 bg-white rounded shadow">
+    <div className="max-w-3xl mx-auto p-4 bg-white rounded shadow relative">
       <h2 className="text-xl font-semibold mb-4 text-center">تحصيل فاتورة</h2>
 
       <div className="space-y-4">
-        {/* اختيار الفاتورة */}
         <select
           name="invoiceId"
           value={formData.invoiceId}
@@ -126,7 +136,6 @@ const CollectInvoicePage = () => {
           ))}
         </select>
 
-        {/* زر معاينة الفاتورة */}
         {formData.invoiceId && (
           <button
             onClick={handlePreview}
@@ -136,7 +145,6 @@ const CollectInvoicePage = () => {
           </button>
         )}
 
-        {/* طريقة الدفع */}
         <select
           name="method"
           value={formData.method}
@@ -151,7 +159,6 @@ const CollectInvoicePage = () => {
           ))}
         </select>
 
-        {/* رقم المرجع */}
         <select
           name="reference"
           value={formData.reference}
@@ -166,7 +173,6 @@ const CollectInvoicePage = () => {
           ))}
         </select>
 
-        {/* وصف العملية */}
         <select
           name="description"
           value={formData.description}
@@ -181,7 +187,6 @@ const CollectInvoicePage = () => {
           ))}
         </select>
 
-        {/* الحساب المدين */}
         <select
           name="debitAccountId"
           value={formData.debitAccountId}
@@ -196,7 +201,6 @@ const CollectInvoicePage = () => {
           ))}
         </select>
 
-        {/* الحساب الدائن */}
         <select
           name="creditAccountId"
           value={formData.creditAccountId}
@@ -211,7 +215,6 @@ const CollectInvoicePage = () => {
           ))}
         </select>
 
-        {/* السنة المالية */}
         <select
           name="fiscalYearId"
           value={formData.fiscalYearId}
@@ -226,7 +229,6 @@ const CollectInvoicePage = () => {
           ))}
         </select>
 
-        {/* زر تنفيذ التحصيل */}
         <button
           onClick={handleCollect}
           className="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700"
@@ -234,63 +236,88 @@ const CollectInvoicePage = () => {
           تنفيذ التحصيل
         </button>
 
-        {message && (
-          <div className="mt-4 text-center text-green-600">{message}</div>
-        )}
-
-        {/* كرت المعاينة */}
-        {showPreview && selectedInvoice && (
-          <div
-            className="border p-4 rounded shadow mt-6 bg-gray-50 relative"
-            ref={previewRef}
-          >
-            {/* زر الإغلاق */}
-            <button
-              className="absolute top-2 left-2 text-red-600 hover:text-red-800 text-xl font-bold"
-              onClick={() => setShowPreview(false)}
-              aria-label="إغلاق"
-            >
-              &times;
-            </button>
-
-            <h3 className="text-lg font-bold mb-2 text-center">
-              معاينة الفاتورة
-            </h3>
-            <p>
-              <strong>رقم الفاتورة:</strong> {selectedInvoice.id}
-            </p>
-            <p>
-              <strong>اسم العميل:</strong> {selectedInvoice.customerName}
-            </p>
-            <p>
-              <strong>المبلغ الإجمالي:</strong> {selectedInvoice.totalAmount}{" "}
-              ريال
-            </p>
-            <p>
-              <strong>الوصف:</strong>{" "}
-              {selectedInvoice.paymentMethods?.[0]?.payment?.description ||
-                "---"}
-            </p>
-            <p>
-              <strong>طريقة الدفع:</strong>{" "}
-              {selectedInvoice.paymentMethods?.[0]?.payment?.method || "---"}
-            </p>
-            <p>
-              <strong>رقم المرجع:</strong>{" "}
-              {selectedInvoice.paymentMethods?.[0]?.payment?.reference || "---"}
-            </p>
-
-            <div className="mt-4 text-center">
-              <button
-                onClick={handlePrint}
-                className="bg-green-600 text-white py-1 px-4 rounded hover:bg-green-700"
-              >
-                طباعة
-              </button>
-            </div>
-          </div>
-        )}
+        {message && <div className="mt-4 text-center text-green-600">{message}</div>}
       </div>
+
+      {/* ✅ Modal - Preview Invoice */}
+      <AnimatePresence>
+        {showPreview && selectedInvoice && (
+          <motion.div
+            className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={closeModal}
+          >
+            <motion.div
+              className="bg-white rounded-lg shadow-lg w-full max-w-lg p-6 relative"
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              ref={modalRef}
+            >
+              <button
+                className="absolute top-2 left-2 text-red-600 hover:text-red-800 text-xl font-bold"
+                onClick={closeModal}
+              >
+                &times;
+              </button>
+              <h3 className="text-lg font-bold text-center mb-4">معاينة الفاتورة</h3>
+
+              <table className="w-full border border-gray-300 text-sm">
+                <tbody>
+                  <tr>
+                    <th className="bg-gray-100 border p-2">رقم الفاتورة</th>
+                    <td className="border p-2">{selectedInvoice.id}</td>
+                  </tr>
+                  <tr>
+                    <th className="bg-gray-100 border p-2">اسم العميل</th>
+                    <td className="border p-2">{selectedInvoice.customerName}</td>
+                  </tr>
+                  <tr>
+                    <th className="bg-gray-100 border p-2">تاريخ الفاتورة</th>
+                    <td className="border p-2">
+                      {new Date(selectedInvoice.date).toLocaleDateString("ar-EG")}
+                    </td>
+                  </tr>
+                  <tr>
+                    <th className="bg-gray-100 border p-2">طريقة الدفع</th>
+                    <td className="border p-2">
+                      {selectedInvoice.paymentMethods?.[0]?.payment?.method || "---"}
+                    </td>
+                  </tr>
+                  <tr>
+                    <th className="bg-gray-100 border p-2">رقم المرجع</th>
+                    <td className="border p-2">
+                      {selectedInvoice.paymentMethods?.[0]?.payment?.reference || "---"}
+                    </td>
+                  </tr>
+                  <tr>
+                    <th className="bg-gray-100 border p-2">الوصف</th>
+                    <td className="border p-2">
+                      {selectedInvoice.paymentMethods?.[0]?.payment?.description || "---"}
+                    </td>
+                  </tr>
+                  <tr>
+                    <th className="bg-gray-100 border p-2">المبلغ الإجمالي</th>
+                    <td className="border p-2">{selectedInvoice.totalAmount} ريال</td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <div className="mt-4 text-center">
+                <button
+                  onClick={handlePrint}
+                  className="bg-green-600 text-white py-1 px-4 rounded hover:bg-green-700"
+                >
+                  طباعة
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

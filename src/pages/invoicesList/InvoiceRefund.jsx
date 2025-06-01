@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import axios from "../../service/axios";
 
 export default function InvoiceRefund() {
   const [formData, setFormData] = useState({
@@ -13,12 +13,12 @@ export default function InvoiceRefund() {
   const [fiscalYears, setFiscalYears] = useState([]);
   const [accounts, setAccounts] = useState([]);
 
-  const fetchData = async () => {
+   const fetchData = async () => {
     try {
       const [invoiceRes, fiscalRes, accountRes] = await Promise.all([
-        axios.get("http://localhost:3001/api/invoice/index"),
-        axios.get("http://localhost:3001/api/year/index"),
-        axios.get("http://localhost:3001/api/account/index"),
+        axios.get("/invoice/index"),
+        axios.get("/year/index"),
+        axios.get("/account/index"),
       ]);
 
       // تصفية الفواتير المدفوعة فقط
@@ -31,8 +31,7 @@ export default function InvoiceRefund() {
       console.error("خطأ في تحميل البيانات:", err.message);
     }
   };
-
-  useEffect(() => {
+ useEffect(() => {
     fetchData();
   }, []);
 

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import axios from "../../service/axios";
 
 export default function CompareOpeningBalances() {
   const [years, setYears] = useState([]);
@@ -10,7 +10,7 @@ export default function CompareOpeningBalances() {
 
   // جلب السنوات عند تحميل الصفحة
   useEffect(() => {
-    axios.get("http://localhost:3001/api/year/index")
+    axios.get("/year/index")
       .then(res => setYears(res.data.data || []))
       .catch(err => console.error("Error fetching years", err));
   }, []);
@@ -18,7 +18,7 @@ export default function CompareOpeningBalances() {
   // جلب الميزانية عند اختيار سنة
   const fetchOpeningBalance = async (fiscalYearId, setter) => {
     try {
-      const res = await axios.get(`http://localhost:3001/api/opening-balance/getByFiscalYear/${fiscalYearId}`);
+      const res = await axios.get(`opening-balance/getByFiscalYear/${fiscalYearId}`);
       const items = (res.data.data || []).map(item => ({
         account: item.Account?.name || "غير معروف",
         debit: parseFloat(item.debit),

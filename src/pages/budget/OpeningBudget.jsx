@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import axios from "../../service/axios";
 import LoadingSpinner from "../../components/LoadingSpinner";
 import CenteredToast from "../../components/CenteredToast";
 
 export default function OpeningBudget() {
-  const API_BASE = "http://localhost:3001/api";
 
   const [fiscalYears, setFiscalYears] = useState([]);
   const [accounts, setAccounts] = useState([]);
@@ -27,7 +26,7 @@ export default function OpeningBudget() {
   const fetchFiscalYears = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`${API_BASE}/year/index`);
+      const res = await axios.get(`/year/index`);
       if (res.data && Array.isArray(res.data.data)) {
         setFiscalYears(res.data.data);
       } else {
@@ -44,7 +43,7 @@ export default function OpeningBudget() {
   const fetchAccounts = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`${API_BASE}/account/index`);
+      const res = await axios.get(`/account/index`);
       if (res.data && Array.isArray(res.data)) {
         setAccounts(res.data);
       } else {
@@ -70,7 +69,7 @@ export default function OpeningBudget() {
     setLoading(true);
 
     try {
-      await axios.post(`${API_BASE}/opening-balance/create`, {
+      await axios.post(`/opening-balance/create`, {
         fiscalYearId: formData.fiscalYearId,
         balance: [
           {

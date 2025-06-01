@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import axios from "../../service/axios";
 
 export default function CloseBudget() {
   const [budgets, setBudgets] = useState([]);
@@ -6,14 +7,12 @@ export default function CloseBudget() {
   const [loading, setLoading] = useState(false);
   const [closing, setClosing] = useState(false);
 
-  // جلب الميزانيات من API
   useEffect(() => {
     const fetchBudgets = async () => {
       setLoading(true);
       try {
-        const res = await fetch("http://localhost:3001/api/opening-budgets");
-        const data = await res.json();
-        setBudgets(data);
+        const res = await axios.get("opening-balance/index");
+        setBudgets(res.data);
       } catch (error) {
         console.error("فشل في جلب البيانات:", error);
       } finally {
@@ -32,12 +31,9 @@ export default function CloseBudget() {
 
     try {
       setClosing(true);
-      const res = await fetch(`http://localhost:3001/api/opening-budgets/${selectedId}/close`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
+      const res = await axios.get(`/opening-balance/${selectedId}/close`);
 
-      if (!res.ok) throw new Error("فشل الإغلاق");
+      if (!res.status === 200) throw new Error("فشل الإغلاق");
 
       // تحديث حالة الميزانية محليًا
       setBudgets((prev) =>

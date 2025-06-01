@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import axios from "../../service/axios";
 
 export default function Invoices() {
   const [form, setForm] = useState({
@@ -20,7 +20,6 @@ export default function Invoices() {
   const [editingStatusId, setEditingStatusId] = useState(null); // تتبع حالة التعديل
   const [newStatus, setNewStatus] = useState(""); // الحالة الجديدة المؤقتة
 
-  const baseUrl = "http://localhost:3001/api/invoice";
 
   const invoiceTypes = ["نقدية", "آجل", "أقساط"];
   const paymentMethods = ["نقدي", "تحويل بنكي", "بطاقة ائتمان"];
@@ -58,7 +57,7 @@ export default function Invoices() {
     };
 
     try {
-      await axios.post(`${baseUrl}/create`, payload);
+      await axios.post(`invoice/create`, payload);
       fetchInvoices();
       setForm({
         customerName: "",
@@ -80,7 +79,7 @@ export default function Invoices() {
 
   const fetchInvoices = async () => {
     try {
-      const res = await axios.get(`${baseUrl}/index`);
+      const res = await axios.get(`invoice/index`);
       setInvoices(res.data);
     } catch (err) {
       console.error(err);
@@ -89,7 +88,7 @@ export default function Invoices() {
 
   const handleCancel = async (id) => {
     try {
-      await axios.put(`${baseUrl}/cancel`, { invoiceId: id });
+      await axios.put(`invoice/cancel`, { invoiceId: id });
       fetchInvoices();
     } catch (err) {
       console.error(err);
@@ -98,7 +97,7 @@ export default function Invoices() {
 
   const handleDelete = async (id) => {
     try {
-      await axios.delete(`${baseUrl}/${id}`);
+      await axios.delete(`invoice/${id}`);
       fetchInvoices();
     } catch (err) {
       console.error(err);
@@ -112,7 +111,7 @@ export default function Invoices() {
 
   const handleSaveStatus = async (id) => {
     try {
-      await axios.put(`${baseUrl}/update`, {
+      await axios.put(`invoice/update`, {
         invoiceId: id,
         status: newStatus,
       });

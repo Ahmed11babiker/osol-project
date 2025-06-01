@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import axios from "../../service/axios";
 
 export default function FinancialYearClose() {
-  const API_BASE = "http://localhost:3001/api/year";
 
   const [years, setYears] = useState([]);
   const [oldYearId, setOldYearId] = useState("");
@@ -11,8 +10,8 @@ export default function FinancialYearClose() {
   useEffect(() => {
     const fetchYears = async () => {
       try {
-        const res = await axios.get(`${API_BASE}/index`);
-        setYears(res.data.data); // نفترض { data: [...] }
+        const res = await axios.get(`year/index`);
+        setYears(res.data.data);
       } catch (err) {
         console.error("فشل في تحميل السنوات:", err);
       }
@@ -28,7 +27,7 @@ export default function FinancialYearClose() {
     }
 
     try {
-      const res = await axios.post(`${API_BASE}/close`, {
+      const res = await axios.post(`year/close`, {
         oldFiscalYearId: oldYearId,
         newFiscalYearId: newYearId,
       });

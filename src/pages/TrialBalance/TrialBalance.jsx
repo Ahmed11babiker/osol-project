@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import axios from "../../service/axios";
 import { useTranslation } from 'react-i18next';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
@@ -7,18 +7,17 @@ import 'react-datepicker/dist/react-datepicker.css';
 const TrialBalance = () => {
   const { t, i18n } = useTranslation();
   const [trialData, setTrialData] = useState([]);
+  const [accounts, setAccounts] = useState([]);
   const [comparisonData, setComparisonData] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // تاريخ البداية والنهاية للفلترة أو المقارنة
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
 
-  // جلب ميزان المراجعة العام
   const fetchTrialBalance = async () => {
     setLoading(true);
     try {
-      const res = await axios.get('http://localhost:3001/api/trial-balance/getTrialBalance');
+      const res = await axios.get(`trial-balance/getTrialBalance`);
       setTrialData(res.data.data);
     } catch (err) {
       console.error(err);
@@ -26,12 +25,11 @@ const TrialBalance = () => {
     setLoading(false);
   };
 
-  // جلب ميزان المراجعة لنطاق التاريخ
   const fetchTrialBalanceByDateRange = async () => {
     if (!startDate || !endDate) return;
     setLoading(true);
     try {
-      const res = await axios.get('http://localhost:3001/api/trial-balance/date-range', {
+      const res = await axios.get(`trial-balance/date-range`, {
         params: {
           startDate: startDate.toISOString(),
           endDate: endDate.toISOString()
@@ -44,12 +42,11 @@ const TrialBalance = () => {
     setLoading(false);
   };
 
-  // مقارنة الفترات
   const fetchComparison = async () => {
     if (!startDate || !endDate) return;
     setLoading(true);
     try {
-      const res = await axios.get('http://localhost:3001/api/trial-balance/compare-periods', {
+      const res = await axios.get(`trial-balance/compare-periods`, {
         params: {
           startDate: startDate.toISOString(),
           endDate: endDate.toISOString(),
@@ -63,15 +60,29 @@ const TrialBalance = () => {
     setLoading(false);
   };
 
+  const fetchAccounts = async () => {
+    try {
+      const res = await axios.get(`account/index`);
+      setAccounts(res.data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   useEffect(() => {
+    fetchAccounts();
     fetchTrialBalance();
   }, []);
+
+  const getAccountInfo = (accountId) => {
+    const account = accounts.find((acc) => acc.id === accountId);
+    return account ? { code: account.code, name: account.name } : { code: '-', name: '-' };
+  };
 
   return (
     <div className="p-4">
       <h1 className="text-xl font-bold mb-4">{t('Trial Balance')}</h1>
 
-      {/* تاريخ الفلترة والمقارنة */}
       <div className="flex flex-wrap gap-2 mb-4 items-center">
         <div>
           <label className="block text-sm">{t('Start Date')}</label>
@@ -105,7 +116,6 @@ const TrialBalance = () => {
         </button>
       </div>
 
-      {/* جدول ميزان المراجعة */}
       <div className="overflow-x-auto">
         <table className="min-w-full border">
           <thead className="bg-gray-200">
@@ -118,20 +128,22 @@ const TrialBalance = () => {
             </tr>
           </thead>
           <tbody>
-            {trialData.map((item) => (
-              <tr key={item.accountId}>
-                <td className="p-2 border">{item.accounts.code}</td>
-                <td className="p-2 border">{item.accounts.name}</td>
-                <td className="p-2 border text-right">{item.total_debit}</td>
-                <td className="p-2 border text-right">{item.total_credit}</td>
-                <td className="p-2 border text-right">{item.balance}</td>
-              </tr>
-            ))}
+            {trialData.map((item) => {
+              const account = getAccountInfo(item.accountId);
+              return (
+                <tr key={item.accountId}>
+                  <td className="p-2 border">{account.code}</td>
+                  <td className="p-2 border">{account.name}</td>
+                  <td className="p-2 border text-right">{item.total_debit}</td>
+                  <td className="p-2 border text-right">{item.total_credit}</td>
+                  <td className="p-2 border text-right">{item.balance}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
 
-      {/* جدول مقارنة الفترات */}
       {comparisonData.length > 0 && (
         <div className="mt-8">
           <h2 className="text-lg font-semibold mb-2">{t('Period Comparison')}</h2>

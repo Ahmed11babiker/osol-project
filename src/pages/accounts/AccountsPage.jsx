@@ -1,11 +1,10 @@
 // 📁 src/pages/AccountForm.jsx
 import { useEffect, useState } from "react";
-import axios from "axios";
+import axios from "../../service/axios";
 import LoadingSpinner from "../../components/LoadingSpinner";
 import CenteredToast from "../../components/CenteredToast";
 
 export default function AccountForm({ initialData = {} }) {
-  const API = "http://localhost:3001/api";
 
   const [accountTypes, setAccountTypes] = useState([]);
   const [groups, setGroups] = useState([]);
@@ -37,11 +36,11 @@ export default function AccountForm({ initialData = {} }) {
     setLoading(true);
     try {
       const [atRes, gRes, cRes, bRes, ccRes] = await Promise.all([
-        axios.get(`${API}/account-type/index`),
-        axios.get(`${API}/account-group/index`),
-        axios.get(`${API}/currency/index`),
-        axios.get(`${API}/branch/index`),
-        axios.get(`${API}/cost-center/index`),
+        axios.get(`/account-type/index`),
+        axios.get(`/account-group/index`),
+        axios.get(`/currency/index`),
+        axios.get(`/branch/index`),
+        axios.get(`/cost-center/index`),
       ]);
       setAccountTypes(atRes.data.data || atRes.data);
       setGroups(gRes.data.data || gRes.data);
@@ -59,7 +58,7 @@ export default function AccountForm({ initialData = {} }) {
   const fetchAccountsList = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`${API}/account/index`);
+      const res = await axios.get(`/account/index`);
       setAccountsList(res.data.data || res.data);
     } catch (err) {
       console.error(err);
