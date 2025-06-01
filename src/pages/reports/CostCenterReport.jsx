@@ -1,6 +1,6 @@
 // src/pages/Reports/CostCenterReport.jsx
 import React, { useEffect, useState, useRef } from 'react';
-import axios from '../../service/axios';
+import axios from "../../service/axios";
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { useReactToPrint } from 'react-to-print';
@@ -19,77 +19,86 @@ const CostCenterReport = () => {
   const printRef = useRef();
 
   const fetchData = async () => {
-    if (!startDate || !endDate) return;
-
     setLoading(true);
     try {
-      const response = await axios.get(`/profit-loss/cost-centers-report`, {
+      const response = await axios.get(`profit-loss/cost-centers-report`, {
         params: {
-          startDate: startDate.toISOString(),
-          endDate: endDate.toISOString()
+          ...(startDate && endDate && {
+            startDate: startDate.toISOString(),
+            endDate: endDate.toISOString()
+          })
         }
       });
       setReportData(response.data.report || []);
     } catch (err) {
-      console.error("Failed to fetch report:", err);
+      console.error('فشل في جلب البيانات:', err);
       setReportData([]);
     }
     setLoading(false);
   };
 
+  useEffect(() => {
+    fetchData();
+  }, []);
+
   const handlePrint = useReactToPrint({
     content: () => printRef.current,
-    documentTitle: 'CostCenterReport'
+    documentTitle: 'تقرير مراكز التكلفة',
   });
 
   return (
-    <div className="p-6">
+    <div className="p-6" dir="rtl">
       <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
-        <h2 className="text-2xl font-bold">Cost Center Report</h2>
-        <div className="flex items-center gap-2">
+        <h2 className="text-2xl font-bold">تقرير مراكز التكلفة</h2>
+        <div className="flex items-center gap-2 flex-wrap">
           <DatePicker
             selectsRange
             startDate={startDate}
             endDate={endDate}
             onChange={update => setDateRange(update)}
             isClearable
-            placeholderText="Select date range"
+            placeholderText="اختر فترة زمنية"
             className="p-2 border rounded-md"
           />
-          <button onClick={fetchData} className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-            Get Report
+          <button
+            onClick={() => {
+              if (startDate && endDate) fetchData();
+            }}
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          >
+            تصفية
           </button>
           <button onClick={handlePrint} className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
-            Print
+            طباعة
           </button>
         </div>
       </div>
 
       {loading ? (
-        <p>Loading...</p>
+        <p>جاري التحميل...</p>
       ) : (
         <div ref={printRef} className="bg-white p-4 rounded shadow-md">
           {reportData.length === 0 ? (
-            <p className="text-center text-gray-500">No data available.</p>
+            <p className="text-center text-gray-500">لا توجد بيانات متاحة.</p>
           ) : (
             <>
               <div className="overflow-x-auto mb-6">
                 <table className="min-w-full border">
                   <thead className="bg-gray-100">
                     <tr>
-                      <th className="p-2 border">Cost Center</th>
-                      <th className="p-2 border">Direct Costs</th>
-                      <th className="p-2 border">Indirect Costs</th>
-                      <th className="p-2 border">Total</th>
+                      <th className="p-2 border">مركز التكلفة</th>
+                      <th className="p-2 border">التكاليف المباشرة</th>
+                      <th className="p-2 border">التكاليف غير المباشرة</th>
+                      <th className="p-2 border">الإجمالي</th>
                     </tr>
                   </thead>
                   <tbody>
                     {reportData.map((item, index) => (
                       <tr key={index} className="text-center">
                         <td className="p-2 border">{item.costCenter}</td>
-                        <td className="p-2 border">{item.directCosts}</td>
-                        <td className="p-2 border">{item.indirectCosts}</td>
-                        <td className="p-2 border font-semibold">{item.totalCost}</td>
+                        <td className="p-2 border">{item.directCosts.toLocaleString()}</td>
+                        <td className="p-2 border">{item.indirectCosts.toLocaleString()}</td>
+                        <td className="p-2 border font-semibold">{item.totalCost.toLocaleString()}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -98,20 +107,20 @@ const CostCenterReport = () => {
 
               <div className="grid md:grid-cols-2 gap-6">
                 <div>
-                  <h3 className="font-semibold mb-2">Total Costs by Center (Bar Chart)</h3>
+                  <h3 className="font-semibold mb-2">رسم بياني بالأعمدة للتكاليف</h3>
                   <ResponsiveContainer width="100%" height={300}>
                     <BarChart data={reportData}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="costCenter" />
-                      <YAxis />
-                      <Tooltip />
+                      <YAxis tickFormatter={(v) => v.toLocaleString()} />
+                      <Tooltip formatter={(v) => `${v.toLocaleString()} ريال`} />
                       <Legend />
-                      <Bar dataKey="totalCost" fill="#8884d8" />
+                      <Bar dataKey="totalCost" fill="#8884d8" label={{ position: 'top', formatter: v => v.toLocaleString() }} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
                 <div>
-                  <h3 className="font-semibold mb-2">Total Costs Distribution (Pie Chart)</h3>
+                  <h3 className="font-semibold mb-2">رسم بياني دائري للتوزيع</h3>
                   <ResponsiveContainer width="100%" height={300}>
                     <PieChart>
                       <Pie
@@ -121,13 +130,13 @@ const CostCenterReport = () => {
                         cx="50%"
                         cy="50%"
                         outerRadius={100}
-                        label
+                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                       >
                         {reportData.map((_, i) => (
                           <Cell key={i} fill={COLORS[i % COLORS.length]} />
                         ))}
                       </Pie>
-                      <Tooltip />
+                      <Tooltip formatter={(v) => `${v.toLocaleString()} ريال`} />
                       <Legend verticalAlign="bottom" />
                     </PieChart>
                   </ResponsiveContainer>

@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useRef } from "react";
 import axios from "../../service/axios";
 import { motion, AnimatePresence } from "framer-motion";
@@ -31,7 +32,10 @@ const CollectInvoicePage = () => {
   useEffect(() => {
     // جلب الفواتير
     axios.get(`invoice/index`)
-      .then((res) => setInvoices(res.data))
+    
+      .then((res) => setInvoices( res.data) )
+      
+      
       .catch(console.error);
 
     // جلب الحسابات

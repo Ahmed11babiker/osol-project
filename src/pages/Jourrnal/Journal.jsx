@@ -65,102 +65,141 @@ const JournalEntries = () => {
   };
 
   return (
-    <div className="p-4">
-      <h2 className="text-xl font-bold mb-4">القيود اليومية</h2>
+   <div className="p-4">
+  <h2 className="text-xl font-bold mb-4">القيود اليومية</h2>
 
-      {Object.values(groupedData).map(({ journalInfo, entries }) => (
-        <div key={journalInfo.id} className="mb-6 border rounded p-4 shadow">
-          <div className="mb-2 font-semibold">
-            <span>تاريخ القيد:</span>{" "}
-            {new Date(journalInfo.date).toLocaleDateString("ar-EG")}
-          </div>
-          <div className="mb-2 font-semibold">الوصف العام: {journalInfo.description}</div>
-          <table className="w-full table-auto border mt-2">
-            <thead className="bg-gray-100">
-              <tr>
-                <th className="border px-2 py-1">رمز الحساب</th>
-                <th className="border px-2 py-1">اسم الحساب</th>
-                <th className="border px-2 py-1">البيان</th>
-                <th className="border px-2 py-1">مدين</th>
-                <th className="border px-2 py-1">دائن</th>
-                <th className="border px-2 py-1">مركز التكلفة</th>
-                <th className="border px-2 py-1">إجراءات</th>
+  {Object.values(groupedData).map(({ journalInfo, entries }) => (
+    <div key={journalInfo.id} className="mb-6 border rounded p-4 shadow bg-white">
+      <div className="mb-2 font-semibold text-sm sm:text-base">
+        <span>تاريخ القيد:</span>{" "}
+        {new Date(journalInfo.date).toLocaleDateString("ar-EG")}
+      </div>
+      <div className="mb-2 font-semibold text-sm sm:text-base">
+        الوصف العام: {journalInfo.description}
+      </div>
+
+      {/* الجدول */}
+      <div className="overflow-x-auto hidden sm:block">
+        <table className="w-full table-auto border mt-2 text-sm">
+          <thead className="bg-gray-100">
+            <tr>
+              <th className="border px-2 py-1">رمز الحساب</th>
+              <th className="border px-2 py-1">اسم الحساب</th>
+              <th className="border px-2 py-1">البيان</th>
+              <th className="border px-2 py-1">مدين</th>
+              <th className="border px-2 py-1">دائن</th>
+              <th className="border px-2 py-1">مركز التكلفة</th>
+              <th className="border px-2 py-1">إجراءات</th>
+            </tr>
+          </thead>
+          <tbody>
+            {entries.map((e) => (
+              <tr key={e.id}>
+                <td className="border px-2 py-1 text-center">{e.account.code}</td>
+                <td className="border px-2 py-1">{e.account.name}</td>
+                <td className="border px-2 py-1">{e.description}</td>
+                <td className="border px-2 py-1 text-right">{e.debit.toFixed(2)}</td>
+                <td className="border px-2 py-1 text-right">{e.credit.toFixed(2)}</td>
+                <td className="border px-2 py-1">{e.costCenter?.name || "-"}</td>
+                <td className="border px-2 py-1 text-center space-x-1">
+                  <button
+                    onClick={() => handleEditClick(e)}
+                    className="text-blue-600 hover:underline"
+                  >
+                    تعديل
+                  </button>
+                  <button
+                    onClick={() => handleDelete(e.id)}
+                    className="text-red-600 hover:underline"
+                  >
+                    حذف
+                  </button>
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {entries.map((e) => (
-                <tr key={e.id}>
-                  <td className="border px-2 py-1 text-center">{e.account.code}</td>
-                  <td className="border px-2 py-1">{e.account.name}</td>
-                  <td className="border px-2 py-1">{e.description}</td>
-                  <td className="border px-2 py-1 text-right">{e.debit.toFixed(2)}</td>
-                  <td className="border px-2 py-1 text-right">{e.credit.toFixed(2)}</td>
-                  <td className="border px-2 py-1">{e.costCenter?.name || "-"}</td>
-                  <td className="border px-2 py-1 text-center space-x-2">
-                    <button
-                      onClick={() => handleEditClick(e)}
-                      className="text-blue-600 hover:underline mx-2"
-                    >
-                      تعديل
-                    </button>
-                    <button
-                      onClick={() => handleDelete(e.id)}
-                      className="text-red-600 hover:underline mx-2"
-                    >
-                      حذف
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ))}
+            ))}
+          </tbody>
+        </table>
+      </div>
 
-      {/* نموذج التعديل */}
-      {editingEntry && (
-        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center">
-          <div className="bg-white p-6 rounded shadow-lg w-full max-w-md">
-            <h3 className="text-lg font-bold mb-4">تعديل القيد</h3>
-            <label className="block mb-2">البيان:</label>
-            <input
-              type="text"
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="border w-full mb-2 px-2 py-1"
-            />
-            <label className="block mb-2">مدين:</label>
-            <input
-              type="number"
-              value={formData.debit}
-              onChange={(e) => setFormData({ ...formData, debit: parseFloat(e.target.value) })}
-              className="border w-full mb-2 px-2 py-1"
-            />
-            <label className="block mb-2">دائن:</label>
-            <input
-              type="number"
-              value={formData.credit}
-              onChange={(e) => setFormData({ ...formData, credit: parseFloat(e.target.value) })}
-              className="border w-full mb-4 px-2 py-1"
-            />
-            <div className="flex justify-end space-x-2">
+      {/* عرض كـ بطاقات على الشاشات الصغيرة */}
+      <div className="block sm:hidden space-y-4 mt-4">
+        {entries.map((e) => (
+          <div key={e.id} className="border rounded p-3 text-sm shadow">
+            <div><strong>رمز الحساب:</strong> {e.account.code}</div>
+            <div><strong>اسم الحساب:</strong> {e.account.name}</div>
+            <div><strong>البيان:</strong> {e.description}</div>
+            <div><strong>مدين:</strong> {e.debit.toFixed(2)}</div>
+            <div><strong>دائن:</strong> {e.credit.toFixed(2)}</div>
+            <div><strong>مركز التكلفة:</strong> {e.costCenter?.name || "-"}</div>
+            <div className="mt-2 flex justify-between">
               <button
-                onClick={() => setEditingEntry(null)}
-                className="px-4 py-2 bg-gray-300 rounded mx-2"
+                onClick={() => handleEditClick(e)}
+                className="text-blue-600 hover:underline"
               >
-                إلغاء
+                تعديل
               </button>
               <button
-                onClick={handleUpdate}
-                className="px-4 py-2 bg-blue-600 text-white rounded mx-2"
+                onClick={() => handleDelete(e.id)}
+                className="text-red-600 hover:underline"
               >
-                حفظ
+                حذف
               </button>
             </div>
           </div>
-        </div>
-      )}
+        ))}
+      </div>
     </div>
+  ))}
+
+  {/* نافذة التعديل */}
+  {editingEntry && (
+    <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 px-4">
+      <div className="bg-white p-6 rounded shadow-lg w-full max-w-md">
+        <h3 className="text-lg font-bold mb-4">تعديل القيد</h3>
+
+        <label className="block mb-2 text-sm">البيان:</label>
+        <input
+          type="text"
+          value={formData.description}
+          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+          className="border w-full mb-2 px-2 py-1 rounded"
+        />
+
+        <label className="block mb-2 text-sm">مدين:</label>
+        <input
+          type="number"
+          value={formData.debit}
+          onChange={(e) => setFormData({ ...formData, debit: parseFloat(e.target.value) || 0 })}
+          className="border w-full mb-2 px-2 py-1 rounded"
+        />
+
+        <label className="block mb-2 text-sm">دائن:</label>
+        <input
+          type="number"
+          value={formData.credit}
+          onChange={(e) => setFormData({ ...formData, credit: parseFloat(e.target.value) || 0 })}
+          className="border w-full mb-4 px-2 py-1 rounded"
+        />
+
+        <div className="flex justify-end gap-2">
+          <button
+            onClick={() => setEditingEntry(null)}
+            className="px-4 py-2 bg-gray-300 rounded text-sm"
+          >
+            إلغاء
+          </button>
+          <button
+            onClick={handleUpdate}
+            className="px-4 py-2 bg-blue-600 text-white rounded text-sm"
+          >
+            حفظ
+          </button>
+        </div>
+      </div>
+    </div>
+  )}
+</div>
+
   );
 };
 

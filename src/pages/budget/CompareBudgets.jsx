@@ -10,7 +10,7 @@ export default function CompareOpeningBalances() {
 
   // جلب السنوات عند تحميل الصفحة
   useEffect(() => {
-    axios.get("/year/index")
+    axios.get(`year/index`)
       .then(res => setYears(res.data.data || []))
       .catch(err => console.error("Error fetching years", err));
   }, []);

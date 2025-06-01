@@ -71,9 +71,10 @@ export default function DashboardLayout({ toggleLang, lang, username }) {
           onToggleSidebar={handleSidebarToggle}
         />
 
-        <main className="flex-1 p-4 bg-gray-50 dark:bg-gray-900 overflow-x-hidden">
-          <Outlet />
-        </main>
+       <main className="flex-1 p-4 bg-gray-50 dark:bg-gray-900 overflow-x-hidden mt-14">
+  <Outlet />
+</main>
+
       </div>
     </div>
   );

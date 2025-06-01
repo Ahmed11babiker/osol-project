@@ -13,7 +13,7 @@ export default function InvoiceRefund() {
   const [fiscalYears, setFiscalYears] = useState([]);
   const [accounts, setAccounts] = useState([]);
 
-   const fetchData = async () => {
+  const fetchData = async () => {
     try {
       const [invoiceRes, fiscalRes, accountRes] = await Promise.all([
         axios.get("/invoice/index"),
@@ -31,7 +31,8 @@ export default function InvoiceRefund() {
       console.error("خطأ في تحميل البيانات:", err.message);
     }
   };
- useEffect(() => {
+
+  useEffect(() => {
     fetchData();
   }, []);
 
