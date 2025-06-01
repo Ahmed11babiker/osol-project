@@ -4,9 +4,11 @@ import axios from "../service/axios"; // تأكد أن هذا الملف يحت�
 import { useUser } from "../context/UserContext";
 
 export default function ProfilePage() {
-  // const { setName, setImage } = useUser();
-  const { userId, setName, setImage } = useUser();
-// 👈 عدّل هذا لاحقًا ليأخذ من المستخدم الحالي
+  const { setName, setImage } = useUser();
+
+  // ✅ جلب معرف المستخدم من sessionStorage (أو AuthContext)
+  const userId = sessionStorage.getItem("userId");
+
   const [profile, setProfile] = useState({
     name: "",
     email: "",
@@ -14,34 +16,33 @@ export default function ProfilePage() {
     jobTitle: "",
     image: "",
   });
+
   const [isEditable, setIsEditable] = useState(false);
   const [isModified, setIsModified] = useState(false);
 
   // ✅ جلب بيانات المستخدم من السيرفر
+  useEffect(() => {
+    if (!userId) return;
 
+    axios.get(`auth/user/${userId}`)
+      .then((res) => {
+        const { username, email, phone, role } = res.data;
+        setProfile({
+          name: username,
+          email: email || "",
+          phone: phone || "",
+          jobTitle: role || "",
+          image: localStorage.getItem("profileImage") || "",
+        });
 
-useEffect(() => {
-  if (!userId) return; // لا تنفذ إذا لم يكن هناك userId
-
-  axios.get(`auth/user/${userId}`)
-    .then((res) => {
-      const { username, email, phone, role } = res.data;
-      setProfile({
-        name: username,
-        email,
-        phone,
-        jobTitle: role || "",
-        image: localStorage.getItem("profileImage") || "",
+        setName(username);
+        setImage(localStorage.getItem("profileImage") || "");
+      })
+      .catch((err) => {
+        toast.error("حدث خطأ أثناء تحميل البيانات", { position: "top-center" });
+        console.error(err);
       });
-      setName(username);
-      setImage(localStorage.getItem("profileImage") || "");
-    })
-    .catch((err) => {
-      toast.error("حدث خطأ أثناء تحميل البيانات", { position: "top-center" });
-      console.error(err);
-    });
-}, [userId]);
-
+  }, [userId]);
 
   const handleChange = (e) => {
     setProfile({ ...profile, [e.target.name]: e.target.value });
@@ -63,33 +64,31 @@ useEffect(() => {
   };
 
   // ✅ تحديث بيانات المستخدم
- const handleSubmit = async (e) => {
-  e.preventDefault();
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-  try {
-    const payload = {
-      username: profile.name,
-      email: profile.email,
-      phone: profile.phone,
-      role: profile.jobTitle,
-    };
+    try {
+      const payload = {
+        username: profile.name,
+        email: profile.email,
+        phone: profile.phone,
+        role: profile.jobTitle,
+      };
 
-    const res = await axios.put(`auth/update/${userId}`, payload);
-    console.log("Response:", res.data); // اختياري للتاكد
+      await axios.put(`auth/update/${userId}`, payload);
 
-    toast.success("✅ تم حفظ البيانات بنجاح", {
-      position: "top-center",
-    });
+      toast.success("✅ تم حفظ البيانات بنجاح", {
+        position: "top-center",
+      });
 
-    setName(profile.name);
-    setIsEditable(false);
-    setIsModified(false);
-  } catch (err) {
-    toast.error("❌ فشل حفظ البيانات", { position: "top-center" });
-    console.error("Error updating profile:", err.response?.data || err.message);
-  }
-};
-
+      setName(profile.name);
+      setIsEditable(false);
+      setIsModified(false);
+    } catch (err) {
+      toast.error("❌ فشل حفظ البيانات", { position: "top-center" });
+      console.error("Error updating profile:", err.response?.data || err.message);
+    }
+  };
 
   const handleEdit = () => {
     setIsEditable(true);
