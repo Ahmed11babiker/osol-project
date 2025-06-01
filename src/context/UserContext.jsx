@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from "react";
+import axios from "axios";
 
 const UserContext = createContext();
 
@@ -7,10 +8,25 @@ export const UserProvider = ({ children }) => {
   const [image, setImage] = useState("");
 
   useEffect(() => {
-    const storedName = localStorage.getItem("profileName") || "";
-    const storedImage = localStorage.getItem("profileImage") || "";
-    setName(storedName);
-    setImage(storedImage);
+    const userId = sessionStorage.getItem("userId");
+    const token = sessionStorage.getItem("token");
+
+    if (userId && token) {
+      axios
+        .get(`http://localhost:3001/api/auth/user/${userId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+        .then((res) => {
+          setName(res.data.username);
+          // يمكنك تعديل هذا إذا كان لديك صورة شخصية
+          setImage("/default-profile.jpg"); // أو res.data.image لو موجود
+        })
+        .catch((err) => {
+          console.error("فشل في جلب بيانات المستخدم:", err);
+        });
+    }
   }, []);
 
   return (

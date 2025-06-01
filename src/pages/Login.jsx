@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useCookies } from 'react-cookie';
 import axios from 'axios';
 
-const Login = ({ lang, setUsername }) => {
+const Login = ({ lang }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -18,21 +18,28 @@ const Login = ({ lang, setUsername }) => {
     if (email && password) {
       setIsLoading(true);
       try {
-        const res = await axios.post("http://localhost:3001/api/auth/login", { email, password });
+        const res = await axios.post("http://localhost:3001/api/auth/login", {
+          email,
+          password,
+        });
+
         if (res.status === 200) {
-          const token = res.data.token;
-          setCookies('token', res.data.token, { maxAge: 4 * 60 * 60 });
-          window.localStorage.setItem('user_id', res.data.id);
-          window.localStorage.setItem('name', res.data.username);
-          window.localStorage.setItem('role', res.data.role);
+          const { id, token } = res.data;
+
+          // استخدم sessionStorage بدلاً من localStorage
+          sessionStorage.setItem("userId", id);
+          sessionStorage.setItem("token", token);
+
+          // خزّن التوكن في الكوكيز (اختياري إذا كنت تستخدمه في طلبات أخرى)
+          setCookies("token", token, { maxAge: 4 * 60 * 60 });
+
           navigate("/dashboard");
         } else {
-          const err = await response.json();
-          setError(err.message || (lang === "ar" ? "خطأ في تسجيل الدخول" : "Login error"));
-          setIsLoading(false);
+          setError(lang === "ar" ? "خطأ في تسجيل الدخول" : "Login error");
         }
-      } catch {
+      } catch (err) {
         setError(lang === "ar" ? "خطأ في الاتصال بالخادم" : "Server connection error");
+      } finally {
         setIsLoading(false);
       }
     } else {
